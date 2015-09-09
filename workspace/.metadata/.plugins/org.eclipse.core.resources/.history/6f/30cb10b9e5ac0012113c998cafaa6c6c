@@ -1,0 +1,181 @@
+/*     */ package watershedflooding;
+/*     */ 
+/*     */ import ij.IJ;
+/*     */ import ij.ImageJ;
+/*     */ import ij.ImagePlus;
+/*     */ import ij.WindowManager;
+/*     */ import imageware.Builder;
+/*     */ import imageware.ImageWare;
+/*     */ import java.awt.Cursor;
+/*     */ import javax.swing.JButton;
+/*     */ 
+/*     */ public class Processing
+/*     */   implements Runnable
+/*     */ {
+/*  10 */   private int MAXBASINS = 200000;
+/*  11 */   private Thread thread = null;
+/*  12 */   private final int JOB_SMOOTH = 1;
+/*  13 */   private final int JOB_WATERSHED = 2;
+/*  14 */   private final int JOB_DISPLAY = 3;
+/*  15 */   private String job = "";
+/*     */ 
+/*  17 */   private double sigmaXY = 0.0D;
+/*  18 */   private double sigmaZ = 0.0D;
+/*  19 */   private boolean animation = false;
+/*  20 */   private boolean conn4 = false;
+/*  21 */   private boolean progression = false;
+/*  22 */   private int minLevel = 0;
+/*  23 */   private int maxLevel = 255;
+/*     */   private int[] display;
+/*     */   private JButton bnWatershed;
+/*  27 */   private ImageWare output = null;
+/*  28 */   private ImageWare image = null;
+/*     */   private ImagePlus imp;
+/*     */ 
+/*     */   public Processing(ImagePlus imp)
+/*     */   {
+/*  34 */     this.imp = imp;
+/*     */   }
+/*     */ 
+/*     */   public void paramsSmooth(double sigmaXY, double sigmaZ)
+/*     */   {
+/*  40 */     this.sigmaXY = sigmaXY;
+/*  41 */     this.sigmaZ = sigmaZ;
+/*     */   }
+/*     */ 
+/*     */   public void paramsWatershed(ImageWare image, JButton bnWatershed, boolean animation, boolean conn4, boolean progression, int minLevel, int maxLevel)
+/*     */   {
+/*  47 */     this.image = image;
+/*  48 */     this.bnWatershed = bnWatershed;
+/*  49 */     this.animation = animation;
+/*  50 */     this.conn4 = conn4;
+/*  51 */     this.progression = progression;
+/*  52 */     this.minLevel = minLevel;
+/*  53 */     this.maxLevel = maxLevel;
+/*     */   }
+/*     */ 
+/*     */   public void paramsDisplay(int[] display)
+/*     */   {
+/*  59 */     this.display = display;
+/*     */   }
+/*     */ 
+/*     */   public void start(String job)
+/*     */   {
+/*  65 */     if (this.thread != null) {
+/*  66 */       return;
+/*     */     }
+/*  68 */     this.job = job.toLowerCase();
+/*  69 */     this.thread = new Thread(this);
+/*  70 */     this.thread.setPriority(1);
+/*  71 */     this.thread.start();
+/*     */   }
+/*     */ 
+/*     */   public void run()
+/*     */   {
+/*  78 */     Cursor cursor = IJ.getInstance().getCursor();
+/*  79 */     IJ.getInstance().setCursor(new Cursor(3));
+/*     */ 
+/*  81 */     if (this.job.equals("smooth")) {
+/*  82 */       smooth();
+/*     */     }
+/*  84 */     else if (this.job.equals("start watershed")) {
+/*  85 */       watershed();
+/*     */     }
+/*  87 */     else if (this.job.equals("display")) {
+/*  88 */       display();
+/*     */     }
+/*  90 */     this.thread = null;
+/*  91 */     IJ.getInstance().setCursor(cursor);
+/*     */   }
+/*     */ 
+/*     */   private void smooth()
+/*     */   {
+/*  98 */     ImagePlus imp = WindowManager.getCurrentImage();
+/*     */ 
+/* 100 */     if (imp == null) {
+/* 101 */       IJ.showMessage("Image required.");
+/* 102 */       return;
+/*     */     }
+/*     */ 
+/* 105 */     if (imp.getType() != 0) {
+/* 106 */       IJ.showMessage("8-bit image required.");
+/* 107 */       return;
+/*     */     }
+/*     */ 
+/* 110 */     double step = 1.0D / imp.getStackSize();
+/* 111 */     ImageWare original = Builder.create(imp);
+/* 112 */     ImageWare smoothImage = original.duplicate();
+/* 113 */     smoothImage.smoothGaussian(this.sigmaXY, this.sigmaXY, this.sigmaZ);
+/* 114 */     smoothImage.show("Smooth");
+/*     */   }
+/*     */ 
+/*     */   private void watershed()
+/*     */   {
+/* 121 */     double t = System.currentTimeMillis();
+/*     */ 
+/* 123 */     int nx = this.image.getSizeX();
+/* 124 */     int ny = this.image.getSizeY();
+/* 125 */     int nz = this.image.getSizeZ();
+/* 126 */     ImageWare inputSlice = Builder.create(nx, ny, 1, this.image.getType());
+/* 127 */     this.output = Builder.create(nx, ny, nz, 3);
+/*     */ 
+/* 130 */     if (this.bnWatershed != null)
+/* 131 */       this.bnWatershed.setText("Stop Watershed");
+/* 132 */     Watershed ws = new Watershed(this.progression);
+/*     */ 
+/* 134 */     if (this.animation) {
+/* 135 */       ws.enableAnimation();
+/*     */     }
+/*     */ 
+/* 138 */     for (int z = 0; z < nz; z++) {
+/* 139 */       if ((this.progression) && (nz > 1))
+/* 140 */         IJ.write(">>>> Start slice: " + z);
+/* 141 */       this.image.getXY(0, 0, z, inputSlice);
+/* 142 */       ImageWare outputSlice = ws.doWatershed(inputSlice, this.conn4, this.minLevel, this.maxLevel);
+/* 143 */       this.output.putXY(0, 0, z, outputSlice);
+/* 144 */       if ((this.progression) && (nz > 1))
+/* 145 */         IJ.write(">>>> End slice: " + z);
+/*     */     }
+/* 147 */     if (this.bnWatershed != null) {
+/* 148 */       this.bnWatershed.setText("Start Watershed");
+/*     */     }
+/* 150 */     if (this.progression) {
+/* 151 */       IJ.write("Watershed time: " + IJ.d2s(System.currentTimeMillis() - t) + " ms");
+/*     */     }
+/* 153 */     display();
+/*     */   }
+/*     */ 
+/*     */   private void display()
+/*     */   {
+/* 159 */     if (this.output == null)
+/* 160 */       return;
+/* 161 */     for (int k = 0; k < this.display.length; k++)
+/* 162 */       switch (this.display[k]) {
+/*     */       case 0:
+/* 164 */         WatershedDisplay.showBinary(this.output);
+/* 165 */         break;
+/*     */       case 1:
+/* 167 */         WatershedDisplay.showDams(this.output);
+/* 168 */         break;
+/*     */       case 2:
+/* 170 */         WatershedDisplay.showRedDams(this.output, this.imp);
+/* 171 */         break;
+/*     */       case 3:
+/* 173 */         this.output.show("Catchment Basins");
+/* 174 */         break;
+/*     */       case 4:
+/* 176 */         WatershedDisplay.showBasins(this.output, WatershedDisplay.createLUTColor(this.MAXBASINS));
+/* 177 */         break;
+/*     */       case 5:
+/* 179 */         WatershedDisplay.showComposite(this.output, this.imp);
+/* 180 */         break;
+/*     */       case 6:
+/* 182 */         this.image.show("Watershed input");
+/*     */       }
+/*     */   }
+/*     */ }
+
+/* Location:           C:\Users\BHUSHANNK\Downloads\Watershed_\
+ * Qualified Name:     watershedflooding.Processing
+ * JD-Core Version:    0.6.2
+ */

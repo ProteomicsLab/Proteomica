@@ -1,0 +1,277 @@
+package watershedflooding;
+
+import ij.IJ;
+import ij.ImagePlus;
+import ij.WindowManager;
+import ij.gui.GUI;
+import imageware.Builder;
+import imageware.ImageWare;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+
+public class MainDialog extends JFrame
+  implements ActionListener, ItemListener, WindowListener
+{
+  private String[] listColorObject = { "Dark objects/Bright background", "Bright objects/Dark background" };
+  private String[] listConnectivity = { "4-connected (fast, less precise)", "8-connected (slow, more precise)" };
+  //private String[] listDisplay = { "Object/Background binary", "Watershed lines", "Overlaid dams", "Labelized basins", "Colorized basins", "Composite" };
+  private String[] listDisplay = { "Object/Background binary","Overlaid dams"};
+  private static final byte WSHED = 0;
+  private static final byte INIT = -1;
+  private int operation = 0;
+  private ImagePlus first = null;
+  private Watershed watershedOperator = null;
+
+  private GridBagLayout layout = new GridBagLayout();
+  private GridBagConstraints constraint = new GridBagConstraints();
+  private JButton bnClose = new JButton("Close");
+  private JButton bnSmooth = new JButton("Smooth");
+  private JButton bnShow = new JButton("Show");
+  private JButton bnWatershed = new JButton("Start Watershed");
+  //Start : Added by Bhushan N Kharbikar for creating roi of the segments or watershed dams
+  private JButton bnSegment = new JButton("Segment");
+  //Stop : Added by Bhushan N Kharbikar for creating roi of the segments or watershed dams
+  private JButton bnHelp = new JButton("Help...");
+  private JTextField txtSigmaXY = new JTextField("3.0", 4);
+  private JTextField txtSigmaZ = new JTextField("0.0", 4);
+  private JTextField txtMaxLevel = new JTextField("255", 4);
+  private JTextField txtMinLevel = new JTextField("0", 4);
+  private JCheckBox chkAnimation = new JCheckBox("Create animation (slow)", null, false);
+  private JCheckBox chkProgress = new JCheckBox("Show progression messages", null, true);
+  private JComboBox cmbConnect = new JComboBox(this.listConnectivity);
+  private JComboBox cmbColorObject = new JComboBox(this.listColorObject);
+  private JComboBox cmbDisplay = new JComboBox(this.listDisplay);
+  private Processing process;
+  private ImagePlus imp;
+  private Font font = new Font("Arial", 0, 9);
+
+  public MainDialog(ImagePlus imp, Processing process)
+  {
+    super("Watershed");
+    this.imp = imp;
+    setTitle("Watershed [" + imp.getTitle() + "]");
+    this.process = process;
+
+/*    JTextArea txtCopyright = new JTextArea(2, 20);
+    txtCopyright.append("Proteomica ver 1.0\n");
+    txtCopyright.append("Bhushan N Kharbikar, Proteomics Lab, \nDepartment of Biosciences and Bioengineering,\nIndian Institute of Technology Bombay");
+
+    txtCopyright.setFont(this.font);
+    txtCopyright.setBorder(BorderFactory.createEtchedBorder());
+    txtCopyright.setForeground(new Color(0, 32, 128));
+    txtCopyright.setBackground(getBackground());
+
+    JPanel pnSmooth = new JPanel();
+    pnSmooth.setLayout(this.layout);
+    pnSmooth.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), "Gaussian blurring"));
+    addComponent(pnSmooth, 0, 0, 1, 1, 4, new JLabel("Radius"));
+    addComponent(pnSmooth, 0, 1, 1, 1, 4, this.txtSigmaXY);
+    addComponent(pnSmooth, 0, 2, 1, 1, 4, this.bnSmooth);
+*/
+    JPanel pnWatershed = new JPanel();
+    pnWatershed.setLayout(this.layout);
+    pnWatershed.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), "Watershed"));
+/*    addComponent(pnWatershed, 0, 0, 4, 1, 4, this.cmbColorObject);
+    addComponent(pnWatershed, 1, 0, 4, 1, 4, this.cmbConnect);
+*/
+    addComponent(pnWatershed, 2, 0, 1, 1, 4, new JLabel("Min/Max "));
+    addComponent(pnWatershed, 2, 1, 1, 1, 4, this.txtMinLevel);
+    addComponent(pnWatershed, 2, 2, 1, 1, 4, this.txtMaxLevel);
+    addComponent(pnWatershed, 2, 3, 1, 1, 4, new JLabel("Level"));
+    addComponent(pnWatershed, 4, 0, 4, 1, 4, this.chkProgress);
+//    addComponent(pnWatershed, 5, 0, 4, 2, 4, this.chkAnimation);
+    if (imp.getStackSize() > 1) {
+/*      this.chkAnimation.setSelected(false);
+      this.chkAnimation.setEnabled(false);
+*/    }
+
+    JPanel pnShow = new JPanel();
+    pnShow.setLayout(this.layout);
+    pnShow.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), "Display"));
+    addComponent(pnShow, 0, 0, 1, 2, 4, this.cmbDisplay);
+    addComponent(pnShow, 0, 1, 1, 2, 4, this.bnShow);
+
+
+    JPanel pnButtons = new JPanel();
+    pnButtons.setLayout(this.layout);
+//    addComponent(pnButtons, 0, 0, 1, 1, 4, this.bnHelp);
+    addComponent(pnButtons, 0, 1, 1, 1, 4, this.bnClose);
+    addComponent(pnButtons, 0, 2, 1, 1, 4, this.bnWatershed);
+    addComponent(pnButtons, 0, 3, 1, 1, 4, this.bnSegment);
+
+    JPanel pnMain = new JPanel();
+    pnMain.setLayout(this.layout);
+//    addComponent(pnMain, 0, 0, 1, 1, 4, txtCopyright);
+//    addComponent(pnMain, 1, 0, 1, 1, 4, pnSmooth);
+    addComponent(pnMain, 2, 0, 1, 1, 4, pnWatershed);
+    addComponent(pnMain, 3, 0, 1, 1, 4, pnShow);
+    addComponent(pnMain, 4, 0, 1, 1, 4, pnButtons);
+
+    this.bnClose.addActionListener(this);
+//    this.bnSmooth.addActionListener(this);
+    this.bnShow.addActionListener(this);
+    this.bnWatershed.addActionListener(this);
+    this.bnSegment.addActionListener(this);
+//    this.bnHelp.addActionListener(this);
+    addWindowListener(this);
+
+    JPanel pnMain1 = new JPanel();
+    pnMain1.setLayout(this.layout);
+    addComponent(pnMain1, 0, 0, 1, 1, 9, pnMain);
+    add(pnMain1);
+    pack();
+    setResizable(false);
+    GUI.center(this);
+    setVisible(true);
+  }
+
+  private void addComponent(JPanel pn, int row, int col, int width, int height, int space, JComponent comp)
+  {
+    this.constraint.gridx = col;
+    this.constraint.gridy = row;
+    this.constraint.gridwidth = width;
+    this.constraint.gridheight = height;
+    this.constraint.anchor = 18;
+    this.constraint.insets = new Insets(space, space, space, space);
+    this.constraint.weightx = (IJ.isMacintosh() ? 90.0D : 100.0D);
+    this.constraint.fill = 2;
+    this.layout.setConstraints(comp, this.constraint);
+    pn.add(comp);
+  }
+
+  public synchronized void actionPerformed(ActionEvent e)
+  {
+    if (e.getSource() == this.bnClose) {
+      dispose();
+    }
+    else
+    {
+      Help help;
+      if (e.getSource() == this.bnHelp) {
+        help = new Help();
+      }
+      else if (e.getSource() == this.bnShow) {
+        int[] display = new int[1];
+        display[0] = this.cmbDisplay.getSelectedIndex();
+        this.process.paramsDisplay(display);
+        this.process.start("display");
+      }
+      else if (e.getSource() == this.bnSmooth) {
+        double sigmaXY = getDoubleValue(this.txtSigmaXY, 0.0D, 3.0D, 1000.0D);
+        double sigmaZ = getDoubleValue(this.txtSigmaZ, 0.0D, 3.0D, 1000.0D);
+        this.process.paramsSmooth(sigmaXY, sigmaZ);
+        this.process.start(this.bnSmooth.getText());
+      }
+      
+      //Start :  Start initiating transform by constructing dams for segmentations  
+      else if (e.getSource() == this.bnWatershed) {
+        //boolean animation = this.chkAnimation.isSelected();
+/*        boolean invert = this.cmbColorObject.getSelectedIndex() == 1;
+        boolean conn4 = this.cmbConnect.getSelectedIndex() == 0;
+*/
+        boolean invert = false;
+        boolean conn4 = true;
+        boolean animation = false;
+    	  
+        int maxLevel = (int)getDoubleValue(this.txtMaxLevel, 0.0D, 255.0D, 255.0D);
+        int minLevel = (int)getDoubleValue(this.txtMinLevel, 0.0D, 0.0D, 255.0D);
+        
+        ImagePlus imp = WindowManager.getCurrentImage();
+        if (imp == null) {
+          IJ.error("Image required.");
+          return;
+        }
+        if (imp.getType() != 0) {
+          IJ.error("8-bit image required.");
+          return;
+        }
+        ImageWare original = Builder.wrap(imp);
+        ImageWare input = original.duplicate();
+        if (invert) {
+          input.invert();
+        }
+        int[] display = new int[1];
+        display[0] = this.cmbDisplay.getSelectedIndex();
+        this.process.paramsDisplay(display);
+        this.process.paramsWatershed(input, this.bnWatershed, animation, conn4, this.chkProgress.isSelected(), minLevel, maxLevel);
+        this.process.start(this.bnWatershed.getText());
+        //Stop :  Start initiating transform by constructing dams for segmentations
+      }
+    //start : Added by Bhushan N Kharbikar method execute to analyze the particle and determine the ROI and add it to ROi manager 
+      else if (e.getSource() == this.bnSegment) { 
+    	  new ParticleAnalyzer();
+      }
+    //stop: Added by Bhushan N Kharbikar method execute to analyze the particle and determine the ROI and add it to ROi manager      
+    }
+    notify();
+  }
+
+  public void windowActivated(WindowEvent e)
+  {
+  }
+
+  public void windowClosing(WindowEvent e)
+  {
+    dispose();
+  }
+
+  public void windowClosed(WindowEvent e)
+  {
+  }
+
+  public void windowDeactivated(WindowEvent e)
+  {
+  }
+
+  public void windowDeiconified(WindowEvent e)
+  {
+  }
+
+  public void windowIconified(WindowEvent e)
+  {
+  }
+
+  public void windowOpened(WindowEvent e)
+  {
+  }
+
+  public synchronized void itemStateChanged(ItemEvent e)
+  {
+  }
+
+  private double getDoubleValue(JTextField text, double mini, double defaut, double maxi)
+  {
+    try
+    {
+      double d = new Double(text.getText()).doubleValue();
+      if (d < mini) text.setText("" + mini);
+      if (d > maxi) text.setText("" + maxi);
+    }
+    catch (Exception e)
+    {
+      if ((e instanceof NumberFormatException))
+        text.setText("" + defaut);
+    }
+    double d = new Double(text.getText()).doubleValue();
+    return d;
+  }
+}

@@ -1,0 +1,243 @@
+package imageware;
+
+public abstract interface Access extends Buffer
+{
+  public abstract double getPixel(int paramInt1, int paramInt2, int paramInt3);
+
+  public abstract double getPixel(int paramInt1, int paramInt2, int paramInt3, byte paramByte);
+
+  public abstract double getInterpolatedPixel(double paramDouble1, double paramDouble2, double paramDouble3);
+
+  public abstract double getInterpolatedPixel(double paramDouble1, double paramDouble2, double paramDouble3, byte paramByte);
+
+  public abstract void putPixel(int paramInt1, int paramInt2, int paramInt3, double paramDouble);
+
+  public abstract void getBoundedX(int paramInt1, int paramInt2, int paramInt3, byte[] paramArrayOfByte);
+
+  public abstract void getBoundedY(int paramInt1, int paramInt2, int paramInt3, byte[] paramArrayOfByte);
+
+  public abstract void getBoundedZ(int paramInt1, int paramInt2, int paramInt3, byte[] paramArrayOfByte);
+
+  public abstract void getBoundedXY(int paramInt1, int paramInt2, int paramInt3, byte[][] paramArrayOfByte);
+
+  public abstract void getBoundedXZ(int paramInt1, int paramInt2, int paramInt3, byte[][] paramArrayOfByte);
+
+  public abstract void getBoundedYZ(int paramInt1, int paramInt2, int paramInt3, byte[][] paramArrayOfByte);
+
+  public abstract void getBoundedXYZ(int paramInt1, int paramInt2, int paramInt3, byte[][][] paramArrayOfByte);
+
+  public abstract void getBoundedX(int paramInt1, int paramInt2, int paramInt3, short[] paramArrayOfShort);
+
+  public abstract void getBoundedY(int paramInt1, int paramInt2, int paramInt3, short[] paramArrayOfShort);
+
+  public abstract void getBoundedZ(int paramInt1, int paramInt2, int paramInt3, short[] paramArrayOfShort);
+
+  public abstract void getBoundedXY(int paramInt1, int paramInt2, int paramInt3, short[][] paramArrayOfShort);
+
+  public abstract void getBoundedXZ(int paramInt1, int paramInt2, int paramInt3, short[][] paramArrayOfShort);
+
+  public abstract void getBoundedYZ(int paramInt1, int paramInt2, int paramInt3, short[][] paramArrayOfShort);
+
+  public abstract void getBoundedXYZ(int paramInt1, int paramInt2, int paramInt3, short[][][] paramArrayOfShort);
+
+  public abstract void getBoundedX(int paramInt1, int paramInt2, int paramInt3, float[] paramArrayOfFloat);
+
+  public abstract void getBoundedY(int paramInt1, int paramInt2, int paramInt3, float[] paramArrayOfFloat);
+
+  public abstract void getBoundedZ(int paramInt1, int paramInt2, int paramInt3, float[] paramArrayOfFloat);
+
+  public abstract void getBoundedXY(int paramInt1, int paramInt2, int paramInt3, float[][] paramArrayOfFloat);
+
+  public abstract void getBoundedXZ(int paramInt1, int paramInt2, int paramInt3, float[][] paramArrayOfFloat);
+
+  public abstract void getBoundedYZ(int paramInt1, int paramInt2, int paramInt3, float[][] paramArrayOfFloat);
+
+  public abstract void getBoundedXYZ(int paramInt1, int paramInt2, int paramInt3, float[][][] paramArrayOfFloat);
+
+  public abstract void getBoundedX(int paramInt1, int paramInt2, int paramInt3, double[] paramArrayOfDouble);
+
+  public abstract void getBoundedY(int paramInt1, int paramInt2, int paramInt3, double[] paramArrayOfDouble);
+
+  public abstract void getBoundedZ(int paramInt1, int paramInt2, int paramInt3, double[] paramArrayOfDouble);
+
+  public abstract void getBoundedXY(int paramInt1, int paramInt2, int paramInt3, double[][] paramArrayOfDouble);
+
+  public abstract void getBoundedXZ(int paramInt1, int paramInt2, int paramInt3, double[][] paramArrayOfDouble);
+
+  public abstract void getBoundedYZ(int paramInt1, int paramInt2, int paramInt3, double[][] paramArrayOfDouble);
+
+  public abstract void getBoundedXYZ(int paramInt1, int paramInt2, int paramInt3, double[][][] paramArrayOfDouble);
+
+  public abstract void getBlockX(int paramInt1, int paramInt2, int paramInt3, byte[] paramArrayOfByte, byte paramByte);
+
+  public abstract void getBlockY(int paramInt1, int paramInt2, int paramInt3, byte[] paramArrayOfByte, byte paramByte);
+
+  public abstract void getBlockZ(int paramInt1, int paramInt2, int paramInt3, byte[] paramArrayOfByte, byte paramByte);
+
+  public abstract void getBlockXY(int paramInt1, int paramInt2, int paramInt3, byte[][] paramArrayOfByte, byte paramByte);
+
+  public abstract void getBlockXZ(int paramInt1, int paramInt2, int paramInt3, byte[][] paramArrayOfByte, byte paramByte);
+
+  public abstract void getBlockYZ(int paramInt1, int paramInt2, int paramInt3, byte[][] paramArrayOfByte, byte paramByte);
+
+  public abstract void getBlockXYZ(int paramInt1, int paramInt2, int paramInt3, byte[][][] paramArrayOfByte, byte paramByte);
+
+  public abstract void getBlockX(int paramInt1, int paramInt2, int paramInt3, short[] paramArrayOfShort, byte paramByte);
+
+  public abstract void getBlockY(int paramInt1, int paramInt2, int paramInt3, short[] paramArrayOfShort, byte paramByte);
+
+  public abstract void getBlockZ(int paramInt1, int paramInt2, int paramInt3, short[] paramArrayOfShort, byte paramByte);
+
+  public abstract void getBlockXY(int paramInt1, int paramInt2, int paramInt3, short[][] paramArrayOfShort, byte paramByte);
+
+  public abstract void getBlockXZ(int paramInt1, int paramInt2, int paramInt3, short[][] paramArrayOfShort, byte paramByte);
+
+  public abstract void getBlockYZ(int paramInt1, int paramInt2, int paramInt3, short[][] paramArrayOfShort, byte paramByte);
+
+  public abstract void getBlockXYZ(int paramInt1, int paramInt2, int paramInt3, short[][][] paramArrayOfShort, byte paramByte);
+
+  public abstract void getBlockX(int paramInt1, int paramInt2, int paramInt3, float[] paramArrayOfFloat, byte paramByte);
+
+  public abstract void getBlockY(int paramInt1, int paramInt2, int paramInt3, float[] paramArrayOfFloat, byte paramByte);
+
+  public abstract void getBlockZ(int paramInt1, int paramInt2, int paramInt3, float[] paramArrayOfFloat, byte paramByte);
+
+  public abstract void getBlockXY(int paramInt1, int paramInt2, int paramInt3, float[][] paramArrayOfFloat, byte paramByte);
+
+  public abstract void getBlockXZ(int paramInt1, int paramInt2, int paramInt3, float[][] paramArrayOfFloat, byte paramByte);
+
+  public abstract void getBlockYZ(int paramInt1, int paramInt2, int paramInt3, float[][] paramArrayOfFloat, byte paramByte);
+
+  public abstract void getBlockXYZ(int paramInt1, int paramInt2, int paramInt3, float[][][] paramArrayOfFloat, byte paramByte);
+
+  public abstract void getBlockX(int paramInt1, int paramInt2, int paramInt3, double[] paramArrayOfDouble, byte paramByte);
+
+  public abstract void getBlockY(int paramInt1, int paramInt2, int paramInt3, double[] paramArrayOfDouble, byte paramByte);
+
+  public abstract void getBlockZ(int paramInt1, int paramInt2, int paramInt3, double[] paramArrayOfDouble, byte paramByte);
+
+  public abstract void getBlockXY(int paramInt1, int paramInt2, int paramInt3, double[][] paramArrayOfDouble, byte paramByte);
+
+  public abstract void getBlockXZ(int paramInt1, int paramInt2, int paramInt3, double[][] paramArrayOfDouble, byte paramByte);
+
+  public abstract void getBlockYZ(int paramInt1, int paramInt2, int paramInt3, double[][] paramArrayOfDouble, byte paramByte);
+
+  public abstract void getBlockXYZ(int paramInt1, int paramInt2, int paramInt3, double[][][] paramArrayOfDouble, byte paramByte);
+
+  public abstract void getNeighborhoodX(int paramInt1, int paramInt2, int paramInt3, byte[] paramArrayOfByte, byte paramByte);
+
+  public abstract void getNeighborhoodY(int paramInt1, int paramInt2, int paramInt3, byte[] paramArrayOfByte, byte paramByte);
+
+  public abstract void getNeighborhoodZ(int paramInt1, int paramInt2, int paramInt3, byte[] paramArrayOfByte, byte paramByte);
+
+  public abstract void getNeighborhoodXY(int paramInt1, int paramInt2, int paramInt3, byte[][] paramArrayOfByte, byte paramByte);
+
+  public abstract void getNeighborhoodXZ(int paramInt1, int paramInt2, int paramInt3, byte[][] paramArrayOfByte, byte paramByte);
+
+  public abstract void getNeighborhoodYZ(int paramInt1, int paramInt2, int paramInt3, byte[][] paramArrayOfByte, byte paramByte);
+
+  public abstract void getNeighborhoodXYZ(int paramInt1, int paramInt2, int paramInt3, byte[][][] paramArrayOfByte, byte paramByte);
+
+  public abstract void getNeighborhoodX(int paramInt1, int paramInt2, int paramInt3, short[] paramArrayOfShort, byte paramByte);
+
+  public abstract void getNeighborhoodY(int paramInt1, int paramInt2, int paramInt3, short[] paramArrayOfShort, byte paramByte);
+
+  public abstract void getNeighborhoodZ(int paramInt1, int paramInt2, int paramInt3, short[] paramArrayOfShort, byte paramByte);
+
+  public abstract void getNeighborhoodXY(int paramInt1, int paramInt2, int paramInt3, short[][] paramArrayOfShort, byte paramByte);
+
+  public abstract void getNeighborhoodXZ(int paramInt1, int paramInt2, int paramInt3, short[][] paramArrayOfShort, byte paramByte);
+
+  public abstract void getNeighborhoodYZ(int paramInt1, int paramInt2, int paramInt3, short[][] paramArrayOfShort, byte paramByte);
+
+  public abstract void getNeighborhoodXYZ(int paramInt1, int paramInt2, int paramInt3, short[][][] paramArrayOfShort, byte paramByte);
+
+  public abstract void getNeighborhoodX(int paramInt1, int paramInt2, int paramInt3, float[] paramArrayOfFloat, byte paramByte);
+
+  public abstract void getNeighborhoodY(int paramInt1, int paramInt2, int paramInt3, float[] paramArrayOfFloat, byte paramByte);
+
+  public abstract void getNeighborhoodZ(int paramInt1, int paramInt2, int paramInt3, float[] paramArrayOfFloat, byte paramByte);
+
+  public abstract void getNeighborhoodXY(int paramInt1, int paramInt2, int paramInt3, float[][] paramArrayOfFloat, byte paramByte);
+
+  public abstract void getNeighborhoodXZ(int paramInt1, int paramInt2, int paramInt3, float[][] paramArrayOfFloat, byte paramByte);
+
+  public abstract void getNeighborhoodYZ(int paramInt1, int paramInt2, int paramInt3, float[][] paramArrayOfFloat, byte paramByte);
+
+  public abstract void getNeighborhoodXYZ(int paramInt1, int paramInt2, int paramInt3, float[][][] paramArrayOfFloat, byte paramByte);
+
+  public abstract void getNeighborhoodX(int paramInt1, int paramInt2, int paramInt3, double[] paramArrayOfDouble, byte paramByte);
+
+  public abstract void getNeighborhoodY(int paramInt1, int paramInt2, int paramInt3, double[] paramArrayOfDouble, byte paramByte);
+
+  public abstract void getNeighborhoodZ(int paramInt1, int paramInt2, int paramInt3, double[] paramArrayOfDouble, byte paramByte);
+
+  public abstract void getNeighborhoodXY(int paramInt1, int paramInt2, int paramInt3, double[][] paramArrayOfDouble, byte paramByte);
+
+  public abstract void getNeighborhoodXZ(int paramInt1, int paramInt2, int paramInt3, double[][] paramArrayOfDouble, byte paramByte);
+
+  public abstract void getNeighborhoodYZ(int paramInt1, int paramInt2, int paramInt3, double[][] paramArrayOfDouble, byte paramByte);
+
+  public abstract void getNeighborhoodXYZ(int paramInt1, int paramInt2, int paramInt3, double[][][] paramArrayOfDouble, byte paramByte);
+
+  public abstract void putBoundedX(int paramInt1, int paramInt2, int paramInt3, byte[] paramArrayOfByte);
+
+  public abstract void putBoundedY(int paramInt1, int paramInt2, int paramInt3, byte[] paramArrayOfByte);
+
+  public abstract void putBoundedZ(int paramInt1, int paramInt2, int paramInt3, byte[] paramArrayOfByte);
+
+  public abstract void putBoundedXY(int paramInt1, int paramInt2, int paramInt3, byte[][] paramArrayOfByte);
+
+  public abstract void putBoundedXZ(int paramInt1, int paramInt2, int paramInt3, byte[][] paramArrayOfByte);
+
+  public abstract void putBoundedYZ(int paramInt1, int paramInt2, int paramInt3, byte[][] paramArrayOfByte);
+
+  public abstract void putBoundedXYZ(int paramInt1, int paramInt2, int paramInt3, byte[][][] paramArrayOfByte);
+
+  public abstract void putBoundedX(int paramInt1, int paramInt2, int paramInt3, short[] paramArrayOfShort);
+
+  public abstract void putBoundedY(int paramInt1, int paramInt2, int paramInt3, short[] paramArrayOfShort);
+
+  public abstract void putBoundedZ(int paramInt1, int paramInt2, int paramInt3, short[] paramArrayOfShort);
+
+  public abstract void putBoundedXY(int paramInt1, int paramInt2, int paramInt3, short[][] paramArrayOfShort);
+
+  public abstract void putBoundedXZ(int paramInt1, int paramInt2, int paramInt3, short[][] paramArrayOfShort);
+
+  public abstract void putBoundedYZ(int paramInt1, int paramInt2, int paramInt3, short[][] paramArrayOfShort);
+
+  public abstract void putBoundedXYZ(int paramInt1, int paramInt2, int paramInt3, short[][][] paramArrayOfShort);
+
+  public abstract void putBoundedX(int paramInt1, int paramInt2, int paramInt3, float[] paramArrayOfFloat);
+
+  public abstract void putBoundedY(int paramInt1, int paramInt2, int paramInt3, float[] paramArrayOfFloat);
+
+  public abstract void putBoundedZ(int paramInt1, int paramInt2, int paramInt3, float[] paramArrayOfFloat);
+
+  public abstract void putBoundedXY(int paramInt1, int paramInt2, int paramInt3, float[][] paramArrayOfFloat);
+
+  public abstract void putBoundedXZ(int paramInt1, int paramInt2, int paramInt3, float[][] paramArrayOfFloat);
+
+  public abstract void putBoundedYZ(int paramInt1, int paramInt2, int paramInt3, float[][] paramArrayOfFloat);
+
+  public abstract void putBoundedXYZ(int paramInt1, int paramInt2, int paramInt3, float[][][] paramArrayOfFloat);
+
+  public abstract void putBoundedX(int paramInt1, int paramInt2, int paramInt3, double[] paramArrayOfDouble);
+
+  public abstract void putBoundedY(int paramInt1, int paramInt2, int paramInt3, double[] paramArrayOfDouble);
+
+  public abstract void putBoundedZ(int paramInt1, int paramInt2, int paramInt3, double[] paramArrayOfDouble);
+
+  public abstract void putBoundedXY(int paramInt1, int paramInt2, int paramInt3, double[][] paramArrayOfDouble);
+
+  public abstract void putBoundedXZ(int paramInt1, int paramInt2, int paramInt3, double[][] paramArrayOfDouble);
+
+  public abstract void putBoundedYZ(int paramInt1, int paramInt2, int paramInt3, double[][] paramArrayOfDouble);
+
+  public abstract void putBoundedXYZ(int paramInt1, int paramInt2, int paramInt3, double[][][] paramArrayOfDouble);
+}
+
+/* Location:           C:\Users\BHUSHANNK\Downloads\Watershed_\
+ * Qualified Name:     imageware.Access
+ * JD-Core Version:    0.6.2
+ */

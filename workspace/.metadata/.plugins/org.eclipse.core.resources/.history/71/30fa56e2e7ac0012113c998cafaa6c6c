@@ -1,0 +1,4722 @@
+/*      */ package imageware;
+/*      */ 
+/*      */ import ij.ImageStack;
+/*      */ import java.awt.Image;
+/*      */ 
+/*      */ public class DoubleAccess extends DoubleBuffer
+/*      */   implements Access
+/*      */ {
+/*      */   protected DoubleAccess(int nx, int ny, int nz)
+/*      */   {
+/*   25 */     super(nx, ny, nz); } 
+/*   26 */   protected DoubleAccess(Image image, int mode) { super(image, mode); } 
+/*      */   protected DoubleAccess(ImageStack stack, int mode) {
+/*   28 */     super(stack, mode); } 
+/*   29 */   protected DoubleAccess(ImageStack stack, byte chan) { super(stack, chan); } 
+/*      */   protected DoubleAccess(byte[] array, int mode) {
+/*   31 */     super(array, mode); } 
+/*   32 */   protected DoubleAccess(byte[][] array, int mode) { super(array, mode); } 
+/*   33 */   protected DoubleAccess(byte[][][] array, int mode) { super(array, mode); } 
+/*   34 */   protected DoubleAccess(short[] array, int mode) { super(array, mode); } 
+/*   35 */   protected DoubleAccess(short[][] array, int mode) { super(array, mode); } 
+/*   36 */   protected DoubleAccess(short[][][] array, int mode) { super(array, mode); } 
+/*   37 */   protected DoubleAccess(float[] array, int mode) { super(array, mode); } 
+/*   38 */   protected DoubleAccess(float[][] array, int mode) { super(array, mode); } 
+/*   39 */   protected DoubleAccess(float[][][] array, int mode) { super(array, mode); } 
+/*   40 */   protected DoubleAccess(double[] array, int mode) { super(array, mode); } 
+/*   41 */   protected DoubleAccess(double[][] array, int mode) { super(array, mode); } 
+/*   42 */   protected DoubleAccess(double[][][] array, int mode) { super(array, mode); }
+/*      */ 
+/*      */ 
+/*      */   public double getPixel(int x, int y, int z)
+/*      */   {
+/*   61 */     if (x >= this.nx) return 0.0D;
+/*   62 */     if (y >= this.ny) return 0.0D;
+/*   63 */     if (z >= this.nz) return 0.0D;
+/*   64 */     if (x < 0) return 0.0D;
+/*   65 */     if (y < 0) return 0.0D;
+/*   66 */     if (z < 0) return 0.0D;
+/*   67 */     return ((double[])(double[])this.data[z])[(x + y * this.nx)];
+/*      */   }
+/*      */ 
+/*      */   public double getPixel(int x, int y, int z, byte boundaryConditions)
+/*      */   {
+/*   82 */     int xperiod = 0;
+/*   83 */     int yperiod = 0;
+/*   84 */     int zperiod = 0;
+/*   85 */     switch (boundaryConditions) {
+/*      */     case 2:
+/*   87 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/*   88 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/*   89 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/*   90 */       break;
+/*      */     case 3:
+/*   92 */       xperiod = this.nx;
+/*   93 */       yperiod = this.ny;
+/*   94 */       zperiod = this.nz;
+/*   95 */       break;
+/*      */     default:
+/*   97 */       throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnable to put a pixel \nat the position (" + x + "," + y + "," + z + ".\n" + "-------------------------------------------------------\n");
+/*      */     }
+/*      */ 
+/*  105 */     int xp = x;
+/*  106 */     while (xp < 0)
+/*  107 */       xp += xperiod;
+/*  108 */     while (xp >= this.nx) {
+/*  109 */       xp = xperiod - xp;
+/*  110 */       xp = xp < 0 ? -xp : xp;
+/*      */     }
+/*  112 */     int yp = y;
+/*  113 */     while (yp < 0)
+/*  114 */       yp += yperiod;
+/*  115 */     while (yp >= this.ny) {
+/*  116 */       yp = yperiod - yp;
+/*  117 */       yp = yp < 0 ? -yp : yp;
+/*      */     }
+/*  119 */     int zp = z;
+/*  120 */     while (zp < 0)
+/*  121 */       zp += zperiod;
+/*  122 */     while (zp >= this.nz) {
+/*  123 */       zp = zperiod - zp;
+/*  124 */       zp = zp < 0 ? -zp : zp;
+/*      */     }
+/*  126 */     return ((double[])(double[])this.data[zp])[(xp + yp * this.nx)];
+/*      */   }
+/*      */ 
+/*      */   public double getInterpolatedPixel(double x, double y, double z)
+/*      */   {
+/*  142 */     if (x > this.nx - 1) return 0.0D;
+/*  143 */     if (y > this.ny - 1) return 0.0D;
+/*  144 */     if (z > this.nz - 1) return 0.0D;
+/*  145 */     if (x < 0.0D) return 0.0D;
+/*  146 */     if (y < 0.0D) return 0.0D;
+/*  147 */     if (z < 0.0D) return 0.0D;
+/*  148 */     double output = 0.0D;
+/*      */ 
+/*  154 */     int i = x >= 0.0D ? (int)x : (int)x - 1;
+/*  155 */     int j = y >= 0.0D ? (int)y : (int)y - 1;
+/*  156 */     int k = z >= 0.0D ? (int)z : (int)z - 1;
+/*  157 */     boolean fi = i == this.nx - 1;
+/*  158 */     boolean fj = j == this.ny - 1;
+/*  159 */     boolean fk = k == this.nz - 1;
+/*  160 */     int index = i + j * this.nx;
+/*  161 */     switch (getDimension()) {
+/*      */     case 1:
+/*  163 */       double v1_0 = ((double[])(double[])this.data[k])[index];
+/*  164 */       double v1_1 = fi ? v1_0 : ((double[])(double[])this.data[k])[(index + 1)];
+/*  165 */       double dx1 = x - i;
+/*  166 */       return v1_1 * dx1 - v1_0 * (dx1 - 1.0D);
+/*      */     case 2:
+/*  168 */       double v2_00 = ((double[])(double[])this.data[k])[index];
+/*  169 */       double v2_10 = fi ? v2_00 : ((double[])(double[])this.data[k])[(index + 1)];
+/*  170 */       double v2_01 = fj ? v2_00 : ((double[])(double[])this.data[k])[(index + this.nx)];
+/*  171 */       double v2_11 = fi ? v2_01 : fj ? v2_00 : ((double[])(double[])this.data[k])[(index + 1 + this.nx)];
+/*  172 */       double dx2 = x - i;
+/*  173 */       double dy2 = y - j;
+/*  174 */       return dx2 * (v2_11 * dy2 - v2_10 * (dy2 - 1.0D)) - (dx2 - 1.0D) * (v2_01 * dy2 - v2_00 * (dy2 - 1.0D));
+/*      */     case 3:
+/*  176 */       double v3_000 = ((double[])(double[])this.data[k])[index];
+/*  177 */       double v3_100 = fi ? v3_000 : ((double[])(double[])this.data[k])[(index + 1)];
+/*  178 */       double v3_010 = fj ? v3_000 : ((double[])(double[])this.data[k])[(index + this.nx)];
+/*  179 */       double v3_110 = fi ? v3_010 : fj ? v3_000 : ((double[])(double[])this.data[k])[(index + 1 + this.nx)];
+/*  180 */       double v3_001 = fk ? v3_000 : ((double[])(double[])this.data[(k + 1)])[index];
+/*  181 */       double v3_011 = fk ? v3_010 : fj ? v3_000 : ((double[])(double[])this.data[(k + 1)])[(index + 1)];
+/*  182 */       double v3_101 = fk ? v3_100 : fi ? v3_000 : ((double[])(double[])this.data[(k + 1)])[(index + this.nx)];
+/*  183 */       double v3_111 = fk ? v3_110 : fj ? v3_100 : fi ? v3_000 : ((double[])(double[])this.data[(k + 1)])[(index + 1 + this.nx)];
+/*  184 */       double dx3 = x - i;
+/*  185 */       double dy3 = y - j;
+/*  186 */       double dz3 = z - k;
+/*  187 */       double z1 = dx3 * (v3_110 * dy3 - v3_100 * (dy3 - 1.0D)) - (dx3 - 1.0D) * (v3_010 * dy3 - v3_000 * (dy3 - 1.0D));
+/*  188 */       double z2 = dx3 * (v3_111 * dy3 - v3_101 * (dy3 - 1.0D)) - (dx3 - 1.0D) * (v3_011 * dy3 - v3_001 * (dy3 - 1.0D));
+/*  189 */       return z2 * dz3 - z1 * (dz3 - 1.0D);
+/*      */     }
+/*  191 */     return output;
+/*      */   }
+/*      */ 
+/*      */   public double getInterpolatedPixel(double x, double y, double z, byte boundaryConditions)
+/*      */   {
+/*  209 */     double output = 0.0D;
+/*  210 */     int i = x >= 0.0D ? (int)x : (int)x - 1;
+/*  211 */     int j = y >= 0.0D ? (int)y : (int)y - 1;
+/*  212 */     int k = z >= 0.0D ? (int)z : (int)z - 1;
+/*      */     double dx1;
+/*  213 */     switch (getDimension()) {
+/*      */     case 1:
+/*  215 */       double v1_0 = getPixel(i, j, k, boundaryConditions);
+/*  216 */       double v1_1 = getPixel(i + 1, j, k, boundaryConditions);
+/*  217 */       dx1 = x - i;
+/*      */     case 2:
+/*  219 */       double v2_00 = getPixel(i, j, k, boundaryConditions);
+/*  220 */       double v2_10 = getPixel(i + 1, j, k, boundaryConditions);
+/*  221 */       double v2_01 = getPixel(i, j + 1, k, boundaryConditions);
+/*  222 */       double v2_11 = getPixel(i + 1, j + 1, k, boundaryConditions);
+/*  223 */       double dx2 = x - i;
+/*  224 */       double dy2 = y - j;
+/*  225 */       return dx2 * (v2_11 * dy2 - v2_10 * (dy2 - 1.0D)) - (dx2 - 1.0D) * (v2_01 * dy2 - v2_00 * (dy2 - 1.0D));
+/*      */     case 3:
+/*  227 */       double v3_000 = getPixel(i, j, k, boundaryConditions);
+/*  228 */       double v3_100 = getPixel(i + 1, j, k, boundaryConditions);
+/*  229 */       double v3_010 = getPixel(i, j + 1, k, boundaryConditions);
+/*  230 */       double v3_110 = getPixel(i + 1, j + 1, k, boundaryConditions);
+/*  231 */       double v3_001 = getPixel(i, j, k + 1, boundaryConditions);
+/*  232 */       double v3_011 = getPixel(i + 1, j, k + 1, boundaryConditions);
+/*  233 */       double v3_101 = getPixel(i, j + 1, k + 1, boundaryConditions);
+/*  234 */       double v3_111 = getPixel(i + 1, j + 1, k + 1, boundaryConditions);
+/*  235 */       double dx3 = x - i;
+/*  236 */       double dy3 = y - j;
+/*  237 */       double dz3 = z - k;
+/*  238 */       double z1 = dx3 * (v3_110 * dy3 - v3_100 * (dy3 - 1.0D)) - (dx3 - 1.0D) * (v3_010 * dy3 - v3_000 * (dy3 - 1.0D));
+/*  239 */       double z2 = dx3 * (v3_111 * dy3 - v3_101 * (dy3 - 1.0D)) - (dx3 - 1.0D) * (v3_011 * dy3 - v3_001 * (dy3 - 1.0D));
+/*  240 */       return z2 * dz3 - z1 * (dz3 - 1.0D);
+/*      */     }
+/*  242 */     return output;
+/*      */   }
+/*      */ 
+/*      */   public void putPixel(int x, int y, int z, double value)
+/*      */   {
+/*  261 */     if (x >= this.nx) return;
+/*  262 */     if (y >= this.ny) return;
+/*  263 */     if (z >= this.nz) return;
+/*  264 */     if (x < 0) return;
+/*  265 */     if (y < 0) return;
+/*  266 */     if (z < 0) return;
+/*  267 */     ((double[])this.data[z])[(x + y * this.nx)] = value;
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedX(int x, int y, int z, byte[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  289 */       if (x >= this.nx) return;
+/*  290 */       if (y >= this.ny) return;
+/*  291 */       if (z >= this.nz) return;
+/*  292 */       int iinf = x < 0 ? -x : 0;
+/*  293 */       int offset = x + iinf + y * this.nx;
+/*  294 */       int k = z;
+/*  295 */       int leni = buffer.length;
+/*  296 */       if (x + leni < 0) return;
+/*  297 */       if (y < 0) return;
+/*  298 */       if (z < 0) return;
+/*  299 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/*  300 */       double[] tmp = (double[])this.data[z];
+/*  301 */       for (int i = iinf; i < isup; i++) {
+/*  302 */         buffer[i] = ((byte)(int)tmp[offset]);
+/*  303 */         offset++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  307 */       throw_get("X", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedX(int x, int y, int z, short[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  322 */       if (x >= this.nx) return;
+/*  323 */       if (y >= this.ny) return;
+/*  324 */       if (z >= this.nz) return;
+/*  325 */       int iinf = x < 0 ? -x : 0;
+/*  326 */       int offset = x + iinf + y * this.nx;
+/*  327 */       int k = z;
+/*  328 */       int leni = buffer.length;
+/*  329 */       if (x + leni < 0) return;
+/*  330 */       if (y < 0) return;
+/*  331 */       if (z < 0) return;
+/*  332 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/*  333 */       double[] tmp = (double[])this.data[z];
+/*  334 */       for (int i = iinf; i < isup; i++) {
+/*  335 */         buffer[i] = ((short)(int)tmp[offset]);
+/*  336 */         offset++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  340 */       throw_get("X", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedX(int x, int y, int z, float[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  355 */       if (x >= this.nx) return;
+/*  356 */       if (y >= this.ny) return;
+/*  357 */       if (z >= this.nz) return;
+/*  358 */       int iinf = x < 0 ? -x : 0;
+/*  359 */       int offset = x + iinf + y * this.nx;
+/*  360 */       int k = z;
+/*  361 */       int leni = buffer.length;
+/*  362 */       if (x + leni < 0) return;
+/*  363 */       if (y < 0) return;
+/*  364 */       if (z < 0) return;
+/*  365 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/*  366 */       double[] tmp = (double[])this.data[z];
+/*  367 */       for (int i = iinf; i < isup; i++) {
+/*  368 */         buffer[i] = ((float)tmp[offset]);
+/*  369 */         offset++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  373 */       throw_get("X", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedX(int x, int y, int z, double[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  388 */       if (x >= this.nx) return;
+/*  389 */       if (y >= this.ny) return;
+/*  390 */       if (z >= this.nz) return;
+/*  391 */       int iinf = x < 0 ? -x : 0;
+/*  392 */       int offset = x + iinf + y * this.nx;
+/*  393 */       int k = z;
+/*  394 */       int leni = buffer.length;
+/*  395 */       if (x + leni < 0) return;
+/*  396 */       if (y < 0) return;
+/*  397 */       if (z < 0) return;
+/*  398 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/*  399 */       double[] tmp = (double[])this.data[z];
+/*  400 */       for (int i = iinf; i < isup; i++) {
+/*  401 */         buffer[i] = tmp[offset];
+/*  402 */         offset++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  406 */       throw_get("X", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedY(int x, int y, int z, byte[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  422 */       if (x >= this.nx) return;
+/*  423 */       if (y >= this.ny) return;
+/*  424 */       if (z >= this.nz) return;
+/*  425 */       int iinf = y < 0 ? -y : 0;
+/*  426 */       int offset = x + (y + iinf) * this.nx;
+/*  427 */       int k = z;
+/*  428 */       int leni = buffer.length;
+/*  429 */       if (x < 0) return;
+/*  430 */       if (y + leni < 0) return;
+/*  431 */       if (z < 0) return;
+/*  432 */       int isup = y + leni >= this.ny ? this.ny - y : leni;
+/*  433 */       double[] tmp = (double[])this.data[z];
+/*  434 */       for (int i = iinf; i < isup; i++) {
+/*  435 */         buffer[i] = ((byte)(int)tmp[offset]);
+/*  436 */         offset += this.nx;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  440 */       throw_get("Y", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedY(int x, int y, int z, short[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  455 */       if (x >= this.nx) return;
+/*  456 */       if (y >= this.ny) return;
+/*  457 */       if (z >= this.nz) return;
+/*  458 */       int iinf = y < 0 ? -y : 0;
+/*  459 */       int offset = x + (y + iinf) * this.nx;
+/*  460 */       int k = z;
+/*  461 */       int leni = buffer.length;
+/*  462 */       if (x < 0) return;
+/*  463 */       if (y + leni < 0) return;
+/*  464 */       if (z < 0) return;
+/*  465 */       int isup = y + leni >= this.ny ? this.ny - y : leni;
+/*  466 */       double[] tmp = (double[])this.data[z];
+/*  467 */       for (int i = iinf; i < isup; i++) {
+/*  468 */         buffer[i] = ((short)(int)tmp[offset]);
+/*  469 */         offset += this.nx;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  473 */       throw_get("Y", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedY(int x, int y, int z, float[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  488 */       if (x >= this.nx) return;
+/*  489 */       if (y >= this.ny) return;
+/*  490 */       if (z >= this.nz) return;
+/*  491 */       int iinf = y < 0 ? -y : 0;
+/*  492 */       int offset = x + (y + iinf) * this.nx;
+/*  493 */       int k = z;
+/*  494 */       int leni = buffer.length;
+/*  495 */       if (x < 0) return;
+/*  496 */       if (y + leni < 0) return;
+/*  497 */       if (z < 0) return;
+/*  498 */       int isup = y + leni >= this.ny ? this.ny - y : leni;
+/*  499 */       double[] tmp = (double[])this.data[z];
+/*  500 */       for (int i = iinf; i < isup; i++) {
+/*  501 */         buffer[i] = ((float)tmp[offset]);
+/*  502 */         offset += this.nx;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  506 */       throw_get("Y", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedY(int x, int y, int z, double[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  521 */       if (x >= this.nx) return;
+/*  522 */       if (y >= this.ny) return;
+/*  523 */       if (z >= this.nz) return;
+/*  524 */       int iinf = y < 0 ? -y : 0;
+/*  525 */       int offset = x + (y + iinf) * this.nx;
+/*  526 */       int k = z;
+/*  527 */       int leni = buffer.length;
+/*  528 */       if (x < 0) return;
+/*  529 */       if (y + leni < 0) return;
+/*  530 */       if (z < 0) return;
+/*  531 */       int isup = y + leni >= this.ny ? this.ny - y : leni;
+/*  532 */       double[] tmp = (double[])this.data[z];
+/*  533 */       for (int i = iinf; i < isup; i++) {
+/*  534 */         buffer[i] = tmp[offset];
+/*  535 */         offset += this.nx;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  539 */       throw_get("Y", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedZ(int x, int y, int z, byte[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  555 */       if (x >= this.nx) return;
+/*  556 */       if (y >= this.ny) return;
+/*  557 */       if (z >= this.nz) return;
+/*  558 */       int iinf = z < 0 ? -z : 0;
+/*  559 */       int k = z + iinf;
+/*  560 */       int offset = x + y * this.nx;
+/*  561 */       int leni = buffer.length;
+/*  562 */       if (x < 0) return;
+/*  563 */       if (y < 0) return;
+/*  564 */       if (z + leni < 0) return;
+/*  565 */       int isup = z + leni >= this.nz ? this.nz - z : leni;
+/*  566 */       for (int i = iinf; i < isup; i++) {
+/*  567 */         buffer[i] = ((byte)(int)((double[])(double[])this.data[k])[offset]);
+/*  568 */         k++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  572 */       throw_get("Z", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedZ(int x, int y, int z, short[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  587 */       if (x >= this.nx) return;
+/*  588 */       if (y >= this.ny) return;
+/*  589 */       if (z >= this.nz) return;
+/*  590 */       int iinf = z < 0 ? -z : 0;
+/*  591 */       int k = z + iinf;
+/*  592 */       int offset = x + y * this.nx;
+/*  593 */       int leni = buffer.length;
+/*  594 */       if (x < 0) return;
+/*  595 */       if (y < 0) return;
+/*  596 */       if (z + leni < 0) return;
+/*  597 */       int isup = z + leni >= this.nz ? this.nz - z : leni;
+/*  598 */       for (int i = iinf; i < isup; i++) {
+/*  599 */         buffer[i] = ((short)(int)((double[])(double[])this.data[k])[offset]);
+/*  600 */         k++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  604 */       throw_get("Z", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedZ(int x, int y, int z, float[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  619 */       if (x >= this.nx) return;
+/*  620 */       if (y >= this.ny) return;
+/*  621 */       if (z >= this.nz) return;
+/*  622 */       int iinf = z < 0 ? -z : 0;
+/*  623 */       int k = z + iinf;
+/*  624 */       int offset = x + y * this.nx;
+/*  625 */       int leni = buffer.length;
+/*  626 */       if (x < 0) return;
+/*  627 */       if (y < 0) return;
+/*  628 */       if (z + leni < 0) return;
+/*  629 */       int isup = z + leni >= this.nz ? this.nz - z : leni;
+/*  630 */       for (int i = iinf; i < isup; i++) {
+/*  631 */         buffer[i] = ((float)((double[])(double[])this.data[k])[offset]);
+/*  632 */         k++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  636 */       throw_get("Z", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedZ(int x, int y, int z, double[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  651 */       if (x >= this.nx) return;
+/*  652 */       if (y >= this.ny) return;
+/*  653 */       if (z >= this.nz) return;
+/*  654 */       int iinf = z < 0 ? -z : 0;
+/*  655 */       int k = z + iinf;
+/*  656 */       int offset = x + y * this.nx;
+/*  657 */       int leni = buffer.length;
+/*  658 */       if (x < 0) return;
+/*  659 */       if (y < 0) return;
+/*  660 */       if (z + leni < 0) return;
+/*  661 */       int isup = z + leni >= this.nz ? this.nz - z : leni;
+/*  662 */       for (int i = iinf; i < isup; i++) {
+/*  663 */         buffer[i] = ((double[])(double[])this.data[k])[offset];
+/*  664 */         k++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  668 */       throw_get("Z", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedXY(int x, int y, int z, byte[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  684 */       if (x >= this.nx) return;
+/*  685 */       if (y >= this.ny) return;
+/*  686 */       if (z >= this.nz) return;
+/*  687 */       int iinf = x < 0 ? -x : 0;
+/*  688 */       int jinf = y < 0 ? -y : 0;
+/*  689 */       int offset = 0;
+/*  690 */       int k = z;
+/*  691 */       int leni = buffer.length;
+/*  692 */       int lenj = buffer[0].length;
+/*  693 */       if (x + leni < 0) return;
+/*  694 */       if (y + lenj < 0) return;
+/*  695 */       if (z < 0) return;
+/*  696 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/*  697 */       int jsup = y + lenj >= this.ny ? this.ny - y : lenj;
+/*  698 */       double[] tmp = (double[])this.data[z];
+/*  699 */       for (int j = jinf; j < jsup; j++) {
+/*  700 */         offset = x + iinf + (y + j) * this.nx;
+/*  701 */         for (int i = iinf; i < isup; i++) {
+/*  702 */           buffer[i][j] = ((byte)(int)tmp[offset]);
+/*  703 */           offset++;
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  708 */       throw_get("XY", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedXY(int x, int y, int z, short[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  723 */       if (x >= this.nx) return;
+/*  724 */       if (y >= this.ny) return;
+/*  725 */       if (z >= this.nz) return;
+/*  726 */       int iinf = x < 0 ? -x : 0;
+/*  727 */       int jinf = y < 0 ? -y : 0;
+/*  728 */       int offset = 0;
+/*  729 */       int k = z;
+/*  730 */       int leni = buffer.length;
+/*  731 */       int lenj = buffer[0].length;
+/*  732 */       if (x + leni < 0) return;
+/*  733 */       if (y + lenj < 0) return;
+/*  734 */       if (z < 0) return;
+/*  735 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/*  736 */       int jsup = y + lenj >= this.ny ? this.ny - y : lenj;
+/*  737 */       double[] tmp = (double[])this.data[z];
+/*  738 */       for (int j = jinf; j < jsup; j++) {
+/*  739 */         offset = x + iinf + (y + j) * this.nx;
+/*  740 */         for (int i = iinf; i < isup; i++) {
+/*  741 */           buffer[i][j] = ((short)(int)tmp[offset]);
+/*  742 */           offset++;
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  747 */       throw_get("XY", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedXY(int x, int y, int z, float[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  762 */       if (x >= this.nx) return;
+/*  763 */       if (y >= this.ny) return;
+/*  764 */       if (z >= this.nz) return;
+/*  765 */       int iinf = x < 0 ? -x : 0;
+/*  766 */       int jinf = y < 0 ? -y : 0;
+/*  767 */       int offset = 0;
+/*  768 */       int k = z;
+/*  769 */       int leni = buffer.length;
+/*  770 */       int lenj = buffer[0].length;
+/*  771 */       if (x + leni < 0) return;
+/*  772 */       if (y + lenj < 0) return;
+/*  773 */       if (z < 0) return;
+/*  774 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/*  775 */       int jsup = y + lenj >= this.ny ? this.ny - y : lenj;
+/*  776 */       double[] tmp = (double[])this.data[z];
+/*  777 */       for (int j = jinf; j < jsup; j++) {
+/*  778 */         offset = x + iinf + (y + j) * this.nx;
+/*  779 */         for (int i = iinf; i < isup; i++) {
+/*  780 */           buffer[i][j] = ((float)tmp[offset]);
+/*  781 */           offset++;
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  786 */       throw_get("XY", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedXY(int x, int y, int z, double[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  801 */       if (x >= this.nx) return;
+/*  802 */       if (y >= this.ny) return;
+/*  803 */       if (z >= this.nz) return;
+/*  804 */       int iinf = x < 0 ? -x : 0;
+/*  805 */       int jinf = y < 0 ? -y : 0;
+/*  806 */       int offset = 0;
+/*  807 */       int k = z;
+/*  808 */       int leni = buffer.length;
+/*  809 */       int lenj = buffer[0].length;
+/*  810 */       if (x + leni < 0) return;
+/*  811 */       if (y + lenj < 0) return;
+/*  812 */       if (z < 0) return;
+/*  813 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/*  814 */       int jsup = y + lenj >= this.ny ? this.ny - y : lenj;
+/*  815 */       double[] tmp = (double[])this.data[z];
+/*  816 */       for (int j = jinf; j < jsup; j++) {
+/*  817 */         offset = x + iinf + (y + j) * this.nx;
+/*  818 */         for (int i = iinf; i < isup; i++) {
+/*  819 */           buffer[i][j] = tmp[offset];
+/*  820 */           offset++;
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  825 */       throw_get("XY", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedXZ(int x, int y, int z, byte[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  841 */       if (x >= this.nx) return;
+/*  842 */       if (y >= this.ny) return;
+/*  843 */       if (z >= this.nz) return;
+/*  844 */       int iinf = x < 0 ? -x : 0;
+/*  845 */       int jinf = z < 0 ? -z : 0;
+/*  846 */       int k = z + jinf;
+/*  847 */       int offset = 0;
+/*  848 */       int leni = buffer.length;
+/*  849 */       int lenj = buffer[0].length;
+/*  850 */       if (x + leni < 0) return;
+/*  851 */       if (y < 0) return;
+/*  852 */       if (z + lenj < 0) return;
+/*  853 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/*  854 */       int jsup = z + lenj >= this.nz ? this.nz - z : lenj;
+/*  855 */       for (int j = jinf; j < jsup; j++) {
+/*  856 */         offset = x + iinf + y * this.nx;
+/*  857 */         for (int i = iinf; i < isup; i++) {
+/*  858 */           buffer[i][j] = ((byte)(int)((double[])(double[])this.data[z])[offset]);
+/*  859 */           offset++;
+/*      */         }
+/*  861 */         k++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  865 */       throw_get("YZ", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedXZ(int x, int y, int z, short[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  880 */       if (x >= this.nx) return;
+/*  881 */       if (y >= this.ny) return;
+/*  882 */       if (z >= this.nz) return;
+/*  883 */       int iinf = x < 0 ? -x : 0;
+/*  884 */       int jinf = z < 0 ? -z : 0;
+/*  885 */       int k = z + jinf;
+/*  886 */       int offset = 0;
+/*  887 */       int leni = buffer.length;
+/*  888 */       int lenj = buffer[0].length;
+/*  889 */       if (x + leni < 0) return;
+/*  890 */       if (y < 0) return;
+/*  891 */       if (z + lenj < 0) return;
+/*  892 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/*  893 */       int jsup = z + lenj >= this.nz ? this.nz - z : lenj;
+/*  894 */       for (int j = jinf; j < jsup; j++) {
+/*  895 */         offset = x + iinf + y * this.nx;
+/*  896 */         for (int i = iinf; i < isup; i++) {
+/*  897 */           buffer[i][j] = ((short)(int)((double[])(double[])this.data[z])[offset]);
+/*  898 */           offset++;
+/*      */         }
+/*  900 */         k++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  904 */       throw_get("YZ", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedXZ(int x, int y, int z, float[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  919 */       if (x >= this.nx) return;
+/*  920 */       if (y >= this.ny) return;
+/*  921 */       if (z >= this.nz) return;
+/*  922 */       int iinf = x < 0 ? -x : 0;
+/*  923 */       int jinf = z < 0 ? -z : 0;
+/*  924 */       int k = z + jinf;
+/*  925 */       int offset = 0;
+/*  926 */       int leni = buffer.length;
+/*  927 */       int lenj = buffer[0].length;
+/*  928 */       if (x + leni < 0) return;
+/*  929 */       if (y < 0) return;
+/*  930 */       if (z + lenj < 0) return;
+/*  931 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/*  932 */       int jsup = z + lenj >= this.nz ? this.nz - z : lenj;
+/*  933 */       for (int j = jinf; j < jsup; j++) {
+/*  934 */         offset = x + iinf + y * this.nx;
+/*  935 */         for (int i = iinf; i < isup; i++) {
+/*  936 */           buffer[i][j] = ((float)((double[])(double[])this.data[z])[offset]);
+/*  937 */           offset++;
+/*      */         }
+/*  939 */         k++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  943 */       throw_get("YZ", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedXZ(int x, int y, int z, double[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  958 */       if (x >= this.nx) return;
+/*  959 */       if (y >= this.ny) return;
+/*  960 */       if (z >= this.nz) return;
+/*  961 */       int iinf = x < 0 ? -x : 0;
+/*  962 */       int jinf = z < 0 ? -z : 0;
+/*  963 */       int k = z + jinf;
+/*  964 */       int offset = 0;
+/*  965 */       int leni = buffer.length;
+/*  966 */       int lenj = buffer[0].length;
+/*  967 */       if (x + leni < 0) return;
+/*  968 */       if (y < 0) return;
+/*  969 */       if (z + lenj < 0) return;
+/*  970 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/*  971 */       int jsup = z + lenj >= this.nz ? this.nz - z : lenj;
+/*  972 */       for (int j = jinf; j < jsup; j++) {
+/*  973 */         offset = x + iinf + y * this.nx;
+/*  974 */         for (int i = iinf; i < isup; i++) {
+/*  975 */           buffer[i][j] = ((double[])(double[])this.data[z])[offset];
+/*  976 */           offset++;
+/*      */         }
+/*  978 */         k++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  982 */       throw_get("YZ", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedYZ(int x, int y, int z, byte[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  998 */       if (x >= this.nx) return;
+/*  999 */       if (y >= this.ny) return;
+/* 1000 */       if (z >= this.nz) return;
+/* 1001 */       int iinf = y < 0 ? -y : 0;
+/* 1002 */       int jinf = z < 0 ? -z : 0;
+/* 1003 */       int k = z + jinf;
+/* 1004 */       int offset = 0;
+/* 1005 */       int leni = buffer.length;
+/* 1006 */       int lenj = buffer[0].length;
+/* 1007 */       if (x < 0) return;
+/* 1008 */       if (y + leni < 0) return;
+/* 1009 */       if (z + lenj < 0) return;
+/* 1010 */       int isup = y + leni >= this.ny ? this.ny - y : leni;
+/* 1011 */       int jsup = z + lenj >= this.nz ? this.nz - z : lenj;
+/* 1012 */       for (int j = jinf; j < jsup; j++) {
+/* 1013 */         offset = x + (y + iinf) * this.nx;
+/* 1014 */         for (int i = iinf; i < isup; i++) {
+/* 1015 */           buffer[i][j] = ((byte)(int)((double[])(double[])this.data[z])[offset]);
+/* 1016 */           offset += this.nx;
+/*      */         }
+/* 1018 */         k++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1022 */       throw_get("XZ", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedYZ(int x, int y, int z, short[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1037 */       if (x >= this.nx) return;
+/* 1038 */       if (y >= this.ny) return;
+/* 1039 */       if (z >= this.nz) return;
+/* 1040 */       int iinf = y < 0 ? -y : 0;
+/* 1041 */       int jinf = z < 0 ? -z : 0;
+/* 1042 */       int k = z + jinf;
+/* 1043 */       int offset = 0;
+/* 1044 */       int leni = buffer.length;
+/* 1045 */       int lenj = buffer[0].length;
+/* 1046 */       if (x < 0) return;
+/* 1047 */       if (y + leni < 0) return;
+/* 1048 */       if (z + lenj < 0) return;
+/* 1049 */       int isup = y + leni >= this.ny ? this.ny - y : leni;
+/* 1050 */       int jsup = z + lenj >= this.nz ? this.nz - z : lenj;
+/* 1051 */       for (int j = jinf; j < jsup; j++) {
+/* 1052 */         offset = x + (y + iinf) * this.nx;
+/* 1053 */         for (int i = iinf; i < isup; i++) {
+/* 1054 */           buffer[i][j] = ((short)(int)((double[])(double[])this.data[z])[offset]);
+/* 1055 */           offset += this.nx;
+/*      */         }
+/* 1057 */         k++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1061 */       throw_get("XZ", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedYZ(int x, int y, int z, float[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1076 */       if (x >= this.nx) return;
+/* 1077 */       if (y >= this.ny) return;
+/* 1078 */       if (z >= this.nz) return;
+/* 1079 */       int iinf = y < 0 ? -y : 0;
+/* 1080 */       int jinf = z < 0 ? -z : 0;
+/* 1081 */       int k = z + jinf;
+/* 1082 */       int offset = 0;
+/* 1083 */       int leni = buffer.length;
+/* 1084 */       int lenj = buffer[0].length;
+/* 1085 */       if (x < 0) return;
+/* 1086 */       if (y + leni < 0) return;
+/* 1087 */       if (z + lenj < 0) return;
+/* 1088 */       int isup = y + leni >= this.ny ? this.ny - y : leni;
+/* 1089 */       int jsup = z + lenj >= this.nz ? this.nz - z : lenj;
+/* 1090 */       for (int j = jinf; j < jsup; j++) {
+/* 1091 */         offset = x + (y + iinf) * this.nx;
+/* 1092 */         for (int i = iinf; i < isup; i++) {
+/* 1093 */           buffer[i][j] = ((float)((double[])(double[])this.data[z])[offset]);
+/* 1094 */           offset += this.nx;
+/*      */         }
+/* 1096 */         k++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1100 */       throw_get("XZ", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedYZ(int x, int y, int z, double[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1115 */       if (x >= this.nx) return;
+/* 1116 */       if (y >= this.ny) return;
+/* 1117 */       if (z >= this.nz) return;
+/* 1118 */       int iinf = y < 0 ? -y : 0;
+/* 1119 */       int jinf = z < 0 ? -z : 0;
+/* 1120 */       int k = z + jinf;
+/* 1121 */       int offset = 0;
+/* 1122 */       int leni = buffer.length;
+/* 1123 */       int lenj = buffer[0].length;
+/* 1124 */       if (x < 0) return;
+/* 1125 */       if (y + leni < 0) return;
+/* 1126 */       if (z + lenj < 0) return;
+/* 1127 */       int isup = y + leni >= this.ny ? this.ny - y : leni;
+/* 1128 */       int jsup = z + lenj >= this.nz ? this.nz - z : lenj;
+/* 1129 */       for (int j = jinf; j < jsup; j++) {
+/* 1130 */         offset = x + (y + iinf) * this.nx;
+/* 1131 */         for (int i = iinf; i < isup; i++) {
+/* 1132 */           buffer[i][j] = ((double[])(double[])this.data[z])[offset];
+/* 1133 */           offset += this.nx;
+/*      */         }
+/* 1135 */         k++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1139 */       throw_get("XZ", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedXYZ(int x, int y, int z, byte[][][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1155 */       if (x >= this.nx) return;
+/* 1156 */       if (y >= this.ny) return;
+/* 1157 */       if (z >= this.nz) return;
+/* 1158 */       int iinf = x < 0 ? -x : 0;
+/* 1159 */       int jinf = y < 0 ? -y : 0;
+/* 1160 */       int kinf = z < 0 ? -z : 0;
+/* 1161 */       int ko = z + kinf;
+/* 1162 */       int offset = 0;
+/* 1163 */       int leni = buffer.length;
+/* 1164 */       int lenj = buffer[0].length;
+/* 1165 */       int lenk = buffer[0][0].length;
+/* 1166 */       if (x + leni < 0) return;
+/* 1167 */       if (y + lenj < 0) return;
+/* 1168 */       if (z + lenk < 0) return;
+/* 1169 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/* 1170 */       int jsup = y + lenj >= this.ny ? this.ny - y : lenj;
+/* 1171 */       int ksup = z + lenk >= this.nz ? this.nz - z : lenk;
+/* 1172 */       for (int k = kinf; k < ksup; k++) {
+/* 1173 */         double[] tmp = (double[])this.data[ko];
+/* 1174 */         for (int j = jinf; j < jsup; j++) {
+/* 1175 */           offset = x + iinf + (y + j) * this.nx;
+/* 1176 */           for (int i = iinf; i < isup; i++) {
+/* 1177 */             buffer[i][j][k] = ((byte)(int)tmp[offset]);
+/* 1178 */             offset++;
+/*      */           }
+/*      */         }
+/* 1181 */         ko++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1185 */       throw_get("XYZ", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedXYZ(int x, int y, int z, short[][][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1200 */       if (x >= this.nx) return;
+/* 1201 */       if (y >= this.ny) return;
+/* 1202 */       if (z >= this.nz) return;
+/* 1203 */       int iinf = x < 0 ? -x : 0;
+/* 1204 */       int jinf = y < 0 ? -y : 0;
+/* 1205 */       int kinf = z < 0 ? -z : 0;
+/* 1206 */       int ko = z + kinf;
+/* 1207 */       int offset = 0;
+/* 1208 */       int leni = buffer.length;
+/* 1209 */       int lenj = buffer[0].length;
+/* 1210 */       int lenk = buffer[0][0].length;
+/* 1211 */       if (x + leni < 0) return;
+/* 1212 */       if (y + lenj < 0) return;
+/* 1213 */       if (z + lenk < 0) return;
+/* 1214 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/* 1215 */       int jsup = y + lenj >= this.ny ? this.ny - y : lenj;
+/* 1216 */       int ksup = z + lenk >= this.nz ? this.nz - z : lenk;
+/* 1217 */       for (int k = kinf; k < ksup; k++) {
+/* 1218 */         double[] tmp = (double[])this.data[ko];
+/* 1219 */         for (int j = jinf; j < jsup; j++) {
+/* 1220 */           offset = x + iinf + (y + j) * this.nx;
+/* 1221 */           for (int i = iinf; i < isup; i++) {
+/* 1222 */             buffer[i][j][k] = ((short)(int)tmp[offset]);
+/* 1223 */             offset++;
+/*      */           }
+/*      */         }
+/* 1226 */         ko++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1230 */       throw_get("XYZ", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedXYZ(int x, int y, int z, float[][][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1245 */       if (x >= this.nx) return;
+/* 1246 */       if (y >= this.ny) return;
+/* 1247 */       if (z >= this.nz) return;
+/* 1248 */       int iinf = x < 0 ? -x : 0;
+/* 1249 */       int jinf = y < 0 ? -y : 0;
+/* 1250 */       int kinf = z < 0 ? -z : 0;
+/* 1251 */       int ko = z + kinf;
+/* 1252 */       int offset = 0;
+/* 1253 */       int leni = buffer.length;
+/* 1254 */       int lenj = buffer[0].length;
+/* 1255 */       int lenk = buffer[0][0].length;
+/* 1256 */       if (x + leni < 0) return;
+/* 1257 */       if (y + lenj < 0) return;
+/* 1258 */       if (z + lenk < 0) return;
+/* 1259 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/* 1260 */       int jsup = y + lenj >= this.ny ? this.ny - y : lenj;
+/* 1261 */       int ksup = z + lenk >= this.nz ? this.nz - z : lenk;
+/* 1262 */       for (int k = kinf; k < ksup; k++) {
+/* 1263 */         double[] tmp = (double[])this.data[ko];
+/* 1264 */         for (int j = jinf; j < jsup; j++) {
+/* 1265 */           offset = x + iinf + (y + j) * this.nx;
+/* 1266 */           for (int i = iinf; i < isup; i++) {
+/* 1267 */             buffer[i][j][k] = ((float)tmp[offset]);
+/* 1268 */             offset++;
+/*      */           }
+/*      */         }
+/* 1271 */         ko++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1275 */       throw_get("XYZ", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBoundedXYZ(int x, int y, int z, double[][][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1290 */       if (x >= this.nx) return;
+/* 1291 */       if (y >= this.ny) return;
+/* 1292 */       if (z >= this.nz) return;
+/* 1293 */       int iinf = x < 0 ? -x : 0;
+/* 1294 */       int jinf = y < 0 ? -y : 0;
+/* 1295 */       int kinf = z < 0 ? -z : 0;
+/* 1296 */       int ko = z + kinf;
+/* 1297 */       int offset = 0;
+/* 1298 */       int leni = buffer.length;
+/* 1299 */       int lenj = buffer[0].length;
+/* 1300 */       int lenk = buffer[0][0].length;
+/* 1301 */       if (x + leni < 0) return;
+/* 1302 */       if (y + lenj < 0) return;
+/* 1303 */       if (z + lenk < 0) return;
+/* 1304 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/* 1305 */       int jsup = y + lenj >= this.ny ? this.ny - y : lenj;
+/* 1306 */       int ksup = z + lenk >= this.nz ? this.nz - z : lenk;
+/* 1307 */       for (int k = kinf; k < ksup; k++) {
+/* 1308 */         double[] tmp = (double[])this.data[ko];
+/* 1309 */         for (int j = jinf; j < jsup; j++) {
+/* 1310 */           offset = x + iinf + (y + j) * this.nx;
+/* 1311 */           for (int i = iinf; i < isup; i++) {
+/* 1312 */             buffer[i][j][k] = tmp[offset];
+/* 1313 */             offset++;
+/*      */           }
+/*      */         }
+/* 1316 */         ko++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1320 */       throw_get("XYZ", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockX(int x, int y, int z, byte[] buffer, byte boundaryConditions)
+/*      */   {
+/* 1344 */     int xperiod = 0;
+/* 1345 */     int yperiod = 0;
+/* 1346 */     int zperiod = 0;
+/* 1347 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 1349 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 1350 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 1351 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 1352 */       break;
+/*      */     case 3:
+/* 1354 */       xperiod = this.nx;
+/* 1355 */       yperiod = this.ny;
+/* 1356 */       zperiod = this.nz;
+/* 1357 */       break;
+/*      */     default:
+/* 1359 */       throw_get("X", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 1364 */       int offset = x + y * this.nx;
+/* 1365 */       int leni = buffer.length;
+/* 1366 */       int zp = z;
+/* 1367 */       while (zp < 0)
+/* 1368 */         zp += zperiod;
+/* 1369 */       while (zp >= this.nz) {
+/* 1370 */         zp = zperiod - zp;
+/* 1371 */         zp = zp < 0 ? -zp : zp;
+/*      */       }
+/* 1373 */       int yp = y;
+/* 1374 */       while (yp < 0)
+/* 1375 */         yp += yperiod;
+/* 1376 */       while (yp >= this.ny) {
+/* 1377 */         yp = yperiod - yp;
+/* 1378 */         yp = yp < 0 ? -yp : yp;
+/*      */       }
+/* 1380 */       yp *= this.nx;
+/* 1381 */       double[] tmp = (double[])this.data[zp];
+/* 1382 */       for (int i = 0; i < leni; i++) {
+/* 1383 */         int xp = x + i;
+/* 1384 */         while (xp < 0)
+/* 1385 */           xp += xperiod;
+/* 1386 */         while (xp >= this.nx) {
+/* 1387 */           xp = xperiod - xp;
+/* 1388 */           xp = xp < 0 ? -xp : xp;
+/*      */         }
+/* 1390 */         buffer[i] = ((byte)(int)tmp[(xp + yp)]);
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1394 */       throw_get("X", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockX(int x, int y, int z, short[] buffer, byte boundaryConditions)
+/*      */   {
+/* 1409 */     int xperiod = 0;
+/* 1410 */     int yperiod = 0;
+/* 1411 */     int zperiod = 0;
+/* 1412 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 1414 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 1415 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 1416 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 1417 */       break;
+/*      */     case 3:
+/* 1419 */       xperiod = this.nx;
+/* 1420 */       yperiod = this.ny;
+/* 1421 */       zperiod = this.nz;
+/* 1422 */       break;
+/*      */     default:
+/* 1424 */       throw_get("X", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 1429 */       int offset = x + y * this.nx;
+/* 1430 */       int leni = buffer.length;
+/* 1431 */       int zp = z;
+/* 1432 */       while (zp < 0)
+/* 1433 */         zp += zperiod;
+/* 1434 */       while (zp >= this.nz) {
+/* 1435 */         zp = zperiod - zp;
+/* 1436 */         zp = zp < 0 ? -zp : zp;
+/*      */       }
+/* 1438 */       int yp = y;
+/* 1439 */       while (yp < 0)
+/* 1440 */         yp += yperiod;
+/* 1441 */       while (yp >= this.ny) {
+/* 1442 */         yp = yperiod - yp;
+/* 1443 */         yp = yp < 0 ? -yp : yp;
+/*      */       }
+/* 1445 */       yp *= this.nx;
+/* 1446 */       double[] tmp = (double[])this.data[zp];
+/* 1447 */       for (int i = 0; i < leni; i++) {
+/* 1448 */         int xp = x + i;
+/* 1449 */         while (xp < 0)
+/* 1450 */           xp += xperiod;
+/* 1451 */         while (xp >= this.nx) {
+/* 1452 */           xp = xperiod - xp;
+/* 1453 */           xp = xp < 0 ? -xp : xp;
+/*      */         }
+/* 1455 */         buffer[i] = ((short)(int)tmp[(xp + yp)]);
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1459 */       throw_get("X", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockX(int x, int y, int z, float[] buffer, byte boundaryConditions)
+/*      */   {
+/* 1474 */     int xperiod = 0;
+/* 1475 */     int yperiod = 0;
+/* 1476 */     int zperiod = 0;
+/* 1477 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 1479 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 1480 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 1481 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 1482 */       break;
+/*      */     case 3:
+/* 1484 */       xperiod = this.nx;
+/* 1485 */       yperiod = this.ny;
+/* 1486 */       zperiod = this.nz;
+/* 1487 */       break;
+/*      */     default:
+/* 1489 */       throw_get("X", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 1494 */       int offset = x + y * this.nx;
+/* 1495 */       int leni = buffer.length;
+/* 1496 */       int zp = z;
+/* 1497 */       while (zp < 0)
+/* 1498 */         zp += zperiod;
+/* 1499 */       while (zp >= this.nz) {
+/* 1500 */         zp = zperiod - zp;
+/* 1501 */         zp = zp < 0 ? -zp : zp;
+/*      */       }
+/* 1503 */       int yp = y;
+/* 1504 */       while (yp < 0)
+/* 1505 */         yp += yperiod;
+/* 1506 */       while (yp >= this.ny) {
+/* 1507 */         yp = yperiod - yp;
+/* 1508 */         yp = yp < 0 ? -yp : yp;
+/*      */       }
+/* 1510 */       yp *= this.nx;
+/* 1511 */       double[] tmp = (double[])this.data[zp];
+/* 1512 */       for (int i = 0; i < leni; i++) {
+/* 1513 */         int xp = x + i;
+/* 1514 */         while (xp < 0)
+/* 1515 */           xp += xperiod;
+/* 1516 */         while (xp >= this.nx) {
+/* 1517 */           xp = xperiod - xp;
+/* 1518 */           xp = xp < 0 ? -xp : xp;
+/*      */         }
+/* 1520 */         buffer[i] = ((float)tmp[(xp + yp)]);
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1524 */       throw_get("X", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockX(int x, int y, int z, double[] buffer, byte boundaryConditions)
+/*      */   {
+/* 1539 */     int xperiod = 0;
+/* 1540 */     int yperiod = 0;
+/* 1541 */     int zperiod = 0;
+/* 1542 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 1544 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 1545 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 1546 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 1547 */       break;
+/*      */     case 3:
+/* 1549 */       xperiod = this.nx;
+/* 1550 */       yperiod = this.ny;
+/* 1551 */       zperiod = this.nz;
+/* 1552 */       break;
+/*      */     default:
+/* 1554 */       throw_get("X", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 1559 */       int offset = x + y * this.nx;
+/* 1560 */       int leni = buffer.length;
+/* 1561 */       int zp = z;
+/* 1562 */       while (zp < 0)
+/* 1563 */         zp += zperiod;
+/* 1564 */       while (zp >= this.nz) {
+/* 1565 */         zp = zperiod - zp;
+/* 1566 */         zp = zp < 0 ? -zp : zp;
+/*      */       }
+/* 1568 */       int yp = y;
+/* 1569 */       while (yp < 0)
+/* 1570 */         yp += yperiod;
+/* 1571 */       while (yp >= this.ny) {
+/* 1572 */         yp = yperiod - yp;
+/* 1573 */         yp = yp < 0 ? -yp : yp;
+/*      */       }
+/* 1575 */       yp *= this.nx;
+/* 1576 */       double[] tmp = (double[])this.data[zp];
+/* 1577 */       for (int i = 0; i < leni; i++) {
+/* 1578 */         int xp = x + i;
+/* 1579 */         while (xp < 0)
+/* 1580 */           xp += xperiod;
+/* 1581 */         while (xp >= this.nx) {
+/* 1582 */           xp = xperiod - xp;
+/* 1583 */           xp = xp < 0 ? -xp : xp;
+/*      */         }
+/* 1585 */         buffer[i] = tmp[(xp + yp)];
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1589 */       throw_get("X", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockY(int x, int y, int z, byte[] buffer, byte boundaryConditions)
+/*      */   {
+/* 1605 */     int xperiod = 0;
+/* 1606 */     int yperiod = 0;
+/* 1607 */     int zperiod = 0;
+/* 1608 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 1610 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 1611 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 1612 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 1613 */       break;
+/*      */     case 3:
+/* 1615 */       xperiod = this.nx;
+/* 1616 */       yperiod = this.ny;
+/* 1617 */       zperiod = this.nz;
+/* 1618 */       break;
+/*      */     default:
+/* 1620 */       throw_get("Y", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 1625 */       int offset = x + y * this.nx;
+/* 1626 */       int leni = buffer.length;
+/* 1627 */       int zp = z;
+/* 1628 */       while (zp < 0)
+/* 1629 */         zp += zperiod;
+/* 1630 */       while (zp >= this.nz) {
+/* 1631 */         zp = zperiod - zp;
+/* 1632 */         zp = zp < 0 ? -zp : zp;
+/*      */       }
+/* 1634 */       int xp = x;
+/* 1635 */       while (xp < 0)
+/* 1636 */         xp += xperiod;
+/* 1637 */       while (xp >= this.nx) {
+/* 1638 */         xp = xperiod - xp;
+/* 1639 */         xp = xp < 0 ? -xp : xp;
+/*      */       }
+/* 1641 */       double[] tmp = (double[])this.data[zp];
+/* 1642 */       for (int i = 0; i < leni; i++) {
+/* 1643 */         int yp = y + i;
+/* 1644 */         while (yp < 0)
+/* 1645 */           yp += yperiod;
+/* 1646 */         while (yp >= this.ny) {
+/* 1647 */           yp = yperiod - yp;
+/* 1648 */           yp = yp < 0 ? -yp : yp;
+/*      */         }
+/* 1650 */         buffer[i] = ((byte)(int)tmp[(xp + yp * this.nx)]);
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1654 */       throw_get("Y", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockY(int x, int y, int z, short[] buffer, byte boundaryConditions)
+/*      */   {
+/* 1669 */     int xperiod = 0;
+/* 1670 */     int yperiod = 0;
+/* 1671 */     int zperiod = 0;
+/* 1672 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 1674 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 1675 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 1676 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 1677 */       break;
+/*      */     case 3:
+/* 1679 */       xperiod = this.nx;
+/* 1680 */       yperiod = this.ny;
+/* 1681 */       zperiod = this.nz;
+/* 1682 */       break;
+/*      */     default:
+/* 1684 */       throw_get("Y", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 1689 */       int offset = x + y * this.nx;
+/* 1690 */       int leni = buffer.length;
+/* 1691 */       int zp = z;
+/* 1692 */       while (zp < 0)
+/* 1693 */         zp += zperiod;
+/* 1694 */       while (zp >= this.nz) {
+/* 1695 */         zp = zperiod - zp;
+/* 1696 */         zp = zp < 0 ? -zp : zp;
+/*      */       }
+/* 1698 */       int xp = x;
+/* 1699 */       while (xp < 0)
+/* 1700 */         xp += xperiod;
+/* 1701 */       while (xp >= this.nx) {
+/* 1702 */         xp = xperiod - xp;
+/* 1703 */         xp = xp < 0 ? -xp : xp;
+/*      */       }
+/* 1705 */       double[] tmp = (double[])this.data[zp];
+/* 1706 */       for (int i = 0; i < leni; i++) {
+/* 1707 */         int yp = y + i;
+/* 1708 */         while (yp < 0)
+/* 1709 */           yp += yperiod;
+/* 1710 */         while (yp >= this.ny) {
+/* 1711 */           yp = yperiod - yp;
+/* 1712 */           yp = yp < 0 ? -yp : yp;
+/*      */         }
+/* 1714 */         buffer[i] = ((short)(int)tmp[(xp + yp * this.nx)]);
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1718 */       throw_get("Y", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockY(int x, int y, int z, float[] buffer, byte boundaryConditions)
+/*      */   {
+/* 1733 */     int xperiod = 0;
+/* 1734 */     int yperiod = 0;
+/* 1735 */     int zperiod = 0;
+/* 1736 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 1738 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 1739 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 1740 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 1741 */       break;
+/*      */     case 3:
+/* 1743 */       xperiod = this.nx;
+/* 1744 */       yperiod = this.ny;
+/* 1745 */       zperiod = this.nz;
+/* 1746 */       break;
+/*      */     default:
+/* 1748 */       throw_get("Y", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 1753 */       int offset = x + y * this.nx;
+/* 1754 */       int leni = buffer.length;
+/* 1755 */       int zp = z;
+/* 1756 */       while (zp < 0)
+/* 1757 */         zp += zperiod;
+/* 1758 */       while (zp >= this.nz) {
+/* 1759 */         zp = zperiod - zp;
+/* 1760 */         zp = zp < 0 ? -zp : zp;
+/*      */       }
+/* 1762 */       int xp = x;
+/* 1763 */       while (xp < 0)
+/* 1764 */         xp += xperiod;
+/* 1765 */       while (xp >= this.nx) {
+/* 1766 */         xp = xperiod - xp;
+/* 1767 */         xp = xp < 0 ? -xp : xp;
+/*      */       }
+/* 1769 */       double[] tmp = (double[])this.data[zp];
+/* 1770 */       for (int i = 0; i < leni; i++) {
+/* 1771 */         int yp = y + i;
+/* 1772 */         while (yp < 0)
+/* 1773 */           yp += yperiod;
+/* 1774 */         while (yp >= this.ny) {
+/* 1775 */           yp = yperiod - yp;
+/* 1776 */           yp = yp < 0 ? -yp : yp;
+/*      */         }
+/* 1778 */         buffer[i] = ((float)tmp[(xp + yp * this.nx)]);
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1782 */       throw_get("Y", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockY(int x, int y, int z, double[] buffer, byte boundaryConditions)
+/*      */   {
+/* 1797 */     int xperiod = 0;
+/* 1798 */     int yperiod = 0;
+/* 1799 */     int zperiod = 0;
+/* 1800 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 1802 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 1803 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 1804 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 1805 */       break;
+/*      */     case 3:
+/* 1807 */       xperiod = this.nx;
+/* 1808 */       yperiod = this.ny;
+/* 1809 */       zperiod = this.nz;
+/* 1810 */       break;
+/*      */     default:
+/* 1812 */       throw_get("Y", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 1817 */       int offset = x + y * this.nx;
+/* 1818 */       int leni = buffer.length;
+/* 1819 */       int zp = z;
+/* 1820 */       while (zp < 0)
+/* 1821 */         zp += zperiod;
+/* 1822 */       while (zp >= this.nz) {
+/* 1823 */         zp = zperiod - zp;
+/* 1824 */         zp = zp < 0 ? -zp : zp;
+/*      */       }
+/* 1826 */       int xp = x;
+/* 1827 */       while (xp < 0)
+/* 1828 */         xp += xperiod;
+/* 1829 */       while (xp >= this.nx) {
+/* 1830 */         xp = xperiod - xp;
+/* 1831 */         xp = xp < 0 ? -xp : xp;
+/*      */       }
+/* 1833 */       double[] tmp = (double[])this.data[zp];
+/* 1834 */       for (int i = 0; i < leni; i++) {
+/* 1835 */         int yp = y + i;
+/* 1836 */         while (yp < 0)
+/* 1837 */           yp += yperiod;
+/* 1838 */         while (yp >= this.ny) {
+/* 1839 */           yp = yperiod - yp;
+/* 1840 */           yp = yp < 0 ? -yp : yp;
+/*      */         }
+/* 1842 */         buffer[i] = tmp[(xp + yp * this.nx)];
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1846 */       throw_get("Y", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockZ(int x, int y, int z, byte[] buffer, byte boundaryConditions)
+/*      */   {
+/* 1862 */     int xperiod = 0;
+/* 1863 */     int yperiod = 0;
+/* 1864 */     int zperiod = 0;
+/* 1865 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 1867 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 1868 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 1869 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 1870 */       break;
+/*      */     case 3:
+/* 1872 */       xperiod = this.nx;
+/* 1873 */       yperiod = this.ny;
+/* 1874 */       zperiod = this.nz;
+/* 1875 */       break;
+/*      */     default:
+/* 1877 */       throw_get("Z", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 1882 */       int offset = x + y * this.nx;
+/* 1883 */       int leni = buffer.length;
+/* 1884 */       int xp = x;
+/* 1885 */       while (xp < 0)
+/* 1886 */         xp += xperiod;
+/* 1887 */       while (xp >= this.nx) {
+/* 1888 */         xp = xperiod - xp;
+/* 1889 */         xp = xp < 0 ? -xp : xp;
+/*      */       }
+/* 1891 */       int yp = y;
+/* 1892 */       while (yp < 0)
+/* 1893 */         yp += yperiod;
+/* 1894 */       while (yp >= this.ny) {
+/* 1895 */         yp = yperiod - yp;
+/* 1896 */         yp = yp < 0 ? -yp : yp;
+/*      */       }
+/* 1898 */       int xyp = xp + yp * this.nx;
+/* 1899 */       for (int i = 0; i < leni; i++) {
+/* 1900 */         int zp = z + i;
+/* 1901 */         while (zp < 0)
+/* 1902 */           zp += zperiod;
+/* 1903 */         while (zp >= this.nz) {
+/* 1904 */           zp = zperiod - zp;
+/* 1905 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 1907 */         buffer[i] = ((byte)(int)((double[])(double[])this.data[zp])[xyp]);
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1911 */       throw_get("Z", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockZ(int x, int y, int z, short[] buffer, byte boundaryConditions)
+/*      */   {
+/* 1926 */     int xperiod = 0;
+/* 1927 */     int yperiod = 0;
+/* 1928 */     int zperiod = 0;
+/* 1929 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 1931 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 1932 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 1933 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 1934 */       break;
+/*      */     case 3:
+/* 1936 */       xperiod = this.nx;
+/* 1937 */       yperiod = this.ny;
+/* 1938 */       zperiod = this.nz;
+/* 1939 */       break;
+/*      */     default:
+/* 1941 */       throw_get("Z", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 1946 */       int offset = x + y * this.nx;
+/* 1947 */       int leni = buffer.length;
+/* 1948 */       int xp = x;
+/* 1949 */       while (xp < 0)
+/* 1950 */         xp += xperiod;
+/* 1951 */       while (xp >= this.nx) {
+/* 1952 */         xp = xperiod - xp;
+/* 1953 */         xp = xp < 0 ? -xp : xp;
+/*      */       }
+/* 1955 */       int yp = y;
+/* 1956 */       while (yp < 0)
+/* 1957 */         yp += yperiod;
+/* 1958 */       while (yp >= this.ny) {
+/* 1959 */         yp = yperiod - yp;
+/* 1960 */         yp = yp < 0 ? -yp : yp;
+/*      */       }
+/* 1962 */       int xyp = xp + yp * this.nx;
+/* 1963 */       for (int i = 0; i < leni; i++) {
+/* 1964 */         int zp = z + i;
+/* 1965 */         while (zp < 0)
+/* 1966 */           zp += zperiod;
+/* 1967 */         while (zp >= this.nz) {
+/* 1968 */           zp = zperiod - zp;
+/* 1969 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 1971 */         buffer[i] = ((short)(int)((double[])(double[])this.data[zp])[xyp]);
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1975 */       throw_get("Z", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockZ(int x, int y, int z, float[] buffer, byte boundaryConditions)
+/*      */   {
+/* 1990 */     int xperiod = 0;
+/* 1991 */     int yperiod = 0;
+/* 1992 */     int zperiod = 0;
+/* 1993 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 1995 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 1996 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 1997 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 1998 */       break;
+/*      */     case 3:
+/* 2000 */       xperiod = this.nx;
+/* 2001 */       yperiod = this.ny;
+/* 2002 */       zperiod = this.nz;
+/* 2003 */       break;
+/*      */     default:
+/* 2005 */       throw_get("Z", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 2010 */       int offset = x + y * this.nx;
+/* 2011 */       int leni = buffer.length;
+/* 2012 */       int xp = x;
+/* 2013 */       while (xp < 0)
+/* 2014 */         xp += xperiod;
+/* 2015 */       while (xp >= this.nx) {
+/* 2016 */         xp = xperiod - xp;
+/* 2017 */         xp = xp < 0 ? -xp : xp;
+/*      */       }
+/* 2019 */       int yp = y;
+/* 2020 */       while (yp < 0)
+/* 2021 */         yp += yperiod;
+/* 2022 */       while (yp >= this.ny) {
+/* 2023 */         yp = yperiod - yp;
+/* 2024 */         yp = yp < 0 ? -yp : yp;
+/*      */       }
+/* 2026 */       int xyp = xp + yp * this.nx;
+/* 2027 */       for (int i = 0; i < leni; i++) {
+/* 2028 */         int zp = z + i;
+/* 2029 */         while (zp < 0)
+/* 2030 */           zp += zperiod;
+/* 2031 */         while (zp >= this.nz) {
+/* 2032 */           zp = zperiod - zp;
+/* 2033 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 2035 */         buffer[i] = ((float)((double[])(double[])this.data[zp])[xyp]);
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 2039 */       throw_get("Z", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockZ(int x, int y, int z, double[] buffer, byte boundaryConditions)
+/*      */   {
+/* 2054 */     int xperiod = 0;
+/* 2055 */     int yperiod = 0;
+/* 2056 */     int zperiod = 0;
+/* 2057 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 2059 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 2060 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 2061 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 2062 */       break;
+/*      */     case 3:
+/* 2064 */       xperiod = this.nx;
+/* 2065 */       yperiod = this.ny;
+/* 2066 */       zperiod = this.nz;
+/* 2067 */       break;
+/*      */     default:
+/* 2069 */       throw_get("Z", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 2074 */       int offset = x + y * this.nx;
+/* 2075 */       int leni = buffer.length;
+/* 2076 */       int xp = x;
+/* 2077 */       while (xp < 0)
+/* 2078 */         xp += xperiod;
+/* 2079 */       while (xp >= this.nx) {
+/* 2080 */         xp = xperiod - xp;
+/* 2081 */         xp = xp < 0 ? -xp : xp;
+/*      */       }
+/* 2083 */       int yp = y;
+/* 2084 */       while (yp < 0)
+/* 2085 */         yp += yperiod;
+/* 2086 */       while (yp >= this.ny) {
+/* 2087 */         yp = yperiod - yp;
+/* 2088 */         yp = yp < 0 ? -yp : yp;
+/*      */       }
+/* 2090 */       int xyp = xp + yp * this.nx;
+/* 2091 */       for (int i = 0; i < leni; i++) {
+/* 2092 */         int zp = z + i;
+/* 2093 */         while (zp < 0)
+/* 2094 */           zp += zperiod;
+/* 2095 */         while (zp >= this.nz) {
+/* 2096 */           zp = zperiod - zp;
+/* 2097 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 2099 */         buffer[i] = ((double[])(double[])this.data[zp])[xyp];
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 2103 */       throw_get("Z", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockXY(int x, int y, int z, byte[][] buffer, byte boundaryConditions)
+/*      */   {
+/* 2120 */     int xperiod = 0;
+/* 2121 */     int yperiod = 0;
+/* 2122 */     int zperiod = 0;
+/* 2123 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 2125 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 2126 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 2127 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 2128 */       break;
+/*      */     case 3:
+/* 2130 */       xperiod = this.nx;
+/* 2131 */       yperiod = this.ny;
+/* 2132 */       zperiod = this.nz;
+/* 2133 */       break;
+/*      */     default:
+/* 2135 */       throw_get("XY", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 2140 */       int offset = x + y * this.nx;
+/* 2141 */       int leni = buffer.length;
+/* 2142 */       int lenj = buffer[0].length;
+/* 2143 */       int zp = z;
+/* 2144 */       while (zp < 0)
+/* 2145 */         zp += zperiod;
+/* 2146 */       while (zp >= this.nz) {
+/* 2147 */         zp = zperiod - zp;
+/* 2148 */         zp = zp < 0 ? -zp : zp;
+/*      */       }
+/* 2150 */       double[] tmp = (double[])this.data[zp];
+/* 2151 */       for (int j = 0; j < lenj; j++) {
+/* 2152 */         int yp = y + j;
+/* 2153 */         while (yp < 0)
+/* 2154 */           yp += yperiod;
+/* 2155 */         while (yp >= this.ny) {
+/* 2156 */           yp = yperiod - yp;
+/* 2157 */           yp = yp < 0 ? -yp : yp;
+/*      */         }
+/* 2159 */         yp *= this.nx;
+/* 2160 */         for (int i = 0; i < leni; i++) {
+/* 2161 */           int xp = x + i;
+/* 2162 */           while (xp < 0)
+/* 2163 */             xp += xperiod;
+/* 2164 */           while (xp >= this.nx) {
+/* 2165 */             xp = xperiod - xp;
+/* 2166 */             xp = xp < 0 ? -xp : xp;
+/*      */           }
+/* 2168 */           buffer[i][j] = ((byte)(int)tmp[(xp + yp)]);
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 2173 */       throw_get("XY", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockXY(int x, int y, int z, short[][] buffer, byte boundaryConditions)
+/*      */   {
+/* 2189 */     int xperiod = 0;
+/* 2190 */     int yperiod = 0;
+/* 2191 */     int zperiod = 0;
+/* 2192 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 2194 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 2195 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 2196 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 2197 */       break;
+/*      */     case 3:
+/* 2199 */       xperiod = this.nx;
+/* 2200 */       yperiod = this.ny;
+/* 2201 */       zperiod = this.nz;
+/* 2202 */       break;
+/*      */     default:
+/* 2204 */       throw_get("XY", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 2209 */       int offset = x + y * this.nx;
+/* 2210 */       int leni = buffer.length;
+/* 2211 */       int lenj = buffer[0].length;
+/* 2212 */       int zp = z;
+/* 2213 */       while (zp < 0)
+/* 2214 */         zp += zperiod;
+/* 2215 */       while (zp >= this.nz) {
+/* 2216 */         zp = zperiod - zp;
+/* 2217 */         zp = zp < 0 ? -zp : zp;
+/*      */       }
+/* 2219 */       double[] tmp = (double[])this.data[zp];
+/* 2220 */       for (int j = 0; j < lenj; j++) {
+/* 2221 */         int yp = y + j;
+/* 2222 */         while (yp < 0)
+/* 2223 */           yp += yperiod;
+/* 2224 */         while (yp >= this.ny) {
+/* 2225 */           yp = yperiod - yp;
+/* 2226 */           yp = yp < 0 ? -yp : yp;
+/*      */         }
+/* 2228 */         yp *= this.nx;
+/* 2229 */         for (int i = 0; i < leni; i++) {
+/* 2230 */           int xp = x + i;
+/* 2231 */           while (xp < 0)
+/* 2232 */             xp += xperiod;
+/* 2233 */           while (xp >= this.nx) {
+/* 2234 */             xp = xperiod - xp;
+/* 2235 */             xp = xp < 0 ? -xp : xp;
+/*      */           }
+/* 2237 */           buffer[i][j] = ((short)(int)tmp[(xp + yp)]);
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 2242 */       throw_get("XY", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockXY(int x, int y, int z, float[][] buffer, byte boundaryConditions)
+/*      */   {
+/* 2258 */     int xperiod = 0;
+/* 2259 */     int yperiod = 0;
+/* 2260 */     int zperiod = 0;
+/* 2261 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 2263 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 2264 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 2265 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 2266 */       break;
+/*      */     case 3:
+/* 2268 */       xperiod = this.nx;
+/* 2269 */       yperiod = this.ny;
+/* 2270 */       zperiod = this.nz;
+/* 2271 */       break;
+/*      */     default:
+/* 2273 */       throw_get("XY", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 2278 */       int offset = x + y * this.nx;
+/* 2279 */       int leni = buffer.length;
+/* 2280 */       int lenj = buffer[0].length;
+/* 2281 */       int zp = z;
+/* 2282 */       while (zp < 0)
+/* 2283 */         zp += zperiod;
+/* 2284 */       while (zp >= this.nz) {
+/* 2285 */         zp = zperiod - zp;
+/* 2286 */         zp = zp < 0 ? -zp : zp;
+/*      */       }
+/* 2288 */       double[] tmp = (double[])this.data[zp];
+/* 2289 */       for (int j = 0; j < lenj; j++) {
+/* 2290 */         int yp = y + j;
+/* 2291 */         while (yp < 0)
+/* 2292 */           yp += yperiod;
+/* 2293 */         while (yp >= this.ny) {
+/* 2294 */           yp = yperiod - yp;
+/* 2295 */           yp = yp < 0 ? -yp : yp;
+/*      */         }
+/* 2297 */         yp *= this.nx;
+/* 2298 */         for (int i = 0; i < leni; i++) {
+/* 2299 */           int xp = x + i;
+/* 2300 */           while (xp < 0)
+/* 2301 */             xp += xperiod;
+/* 2302 */           while (xp >= this.nx) {
+/* 2303 */             xp = xperiod - xp;
+/* 2304 */             xp = xp < 0 ? -xp : xp;
+/*      */           }
+/* 2306 */           buffer[i][j] = ((float)tmp[(xp + yp)]);
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 2311 */       throw_get("XY", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockXY(int x, int y, int z, double[][] buffer, byte boundaryConditions)
+/*      */   {
+/* 2327 */     int xperiod = 0;
+/* 2328 */     int yperiod = 0;
+/* 2329 */     int zperiod = 0;
+/* 2330 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 2332 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 2333 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 2334 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 2335 */       break;
+/*      */     case 3:
+/* 2337 */       xperiod = this.nx;
+/* 2338 */       yperiod = this.ny;
+/* 2339 */       zperiod = this.nz;
+/* 2340 */       break;
+/*      */     default:
+/* 2342 */       throw_get("XY", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 2347 */       int offset = x + y * this.nx;
+/* 2348 */       int leni = buffer.length;
+/* 2349 */       int lenj = buffer[0].length;
+/* 2350 */       int zp = z;
+/* 2351 */       while (zp < 0)
+/* 2352 */         zp += zperiod;
+/* 2353 */       while (zp >= this.nz) {
+/* 2354 */         zp = zperiod - zp;
+/* 2355 */         zp = zp < 0 ? -zp : zp;
+/*      */       }
+/* 2357 */       double[] tmp = (double[])this.data[zp];
+/* 2358 */       for (int j = 0; j < lenj; j++) {
+/* 2359 */         int yp = y + j;
+/* 2360 */         while (yp < 0)
+/* 2361 */           yp += yperiod;
+/* 2362 */         while (yp >= this.ny) {
+/* 2363 */           yp = yperiod - yp;
+/* 2364 */           yp = yp < 0 ? -yp : yp;
+/*      */         }
+/* 2366 */         yp *= this.nx;
+/* 2367 */         for (int i = 0; i < leni; i++) {
+/* 2368 */           int xp = x + i;
+/* 2369 */           while (xp < 0)
+/* 2370 */             xp += xperiod;
+/* 2371 */           while (xp >= this.nx) {
+/* 2372 */             xp = xperiod - xp;
+/* 2373 */             xp = xp < 0 ? -xp : xp;
+/*      */           }
+/* 2375 */           buffer[i][j] = tmp[(xp + yp)];
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 2380 */       throw_get("XY", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockXZ(int x, int y, int z, byte[][] buffer, byte boundaryConditions)
+/*      */   {
+/* 2396 */     int xperiod = 0;
+/* 2397 */     int yperiod = 0;
+/* 2398 */     int zperiod = 0;
+/* 2399 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 2401 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 2402 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 2403 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 2404 */       break;
+/*      */     case 3:
+/* 2406 */       xperiod = this.nx;
+/* 2407 */       yperiod = this.ny;
+/* 2408 */       zperiod = this.nz;
+/* 2409 */       break;
+/*      */     default:
+/* 2411 */       throw_get("XZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 2416 */       int offset = x + y * this.nx;
+/* 2417 */       int leni = buffer.length;
+/* 2418 */       int lenj = buffer[0].length;
+/* 2419 */       int yp = y;
+/* 2420 */       while (yp < 0)
+/* 2421 */         yp += yperiod;
+/* 2422 */       while (yp >= this.ny) {
+/* 2423 */         yp = yperiod - yp;
+/* 2424 */         yp = yp < 0 ? -yp : yp;
+/*      */       }
+/* 2426 */       yp *= this.nx;
+/* 2427 */       for (int j = 0; j < lenj; j++) {
+/* 2428 */         int zp = z + j;
+/* 2429 */         while (zp < 0)
+/* 2430 */           zp += zperiod;
+/* 2431 */         while (zp >= this.nz) {
+/* 2432 */           zp = zperiod - yp;
+/* 2433 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 2435 */         for (int i = 0; i < leni; i++) {
+/* 2436 */           int xp = x + i;
+/* 2437 */           while (xp < 0)
+/* 2438 */             xp += xperiod;
+/* 2439 */           while (xp >= this.nx) {
+/* 2440 */             xp = xperiod - xp;
+/* 2441 */             xp = xp < 0 ? -xp : xp;
+/*      */           }
+/* 2443 */           buffer[i][j] = ((byte)(int)((double[])(double[])this.data[zp])[(xp + yp)]);
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 2448 */       throw_get("XZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockXZ(int x, int y, int z, short[][] buffer, byte boundaryConditions)
+/*      */   {
+/* 2463 */     int xperiod = 0;
+/* 2464 */     int yperiod = 0;
+/* 2465 */     int zperiod = 0;
+/* 2466 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 2468 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 2469 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 2470 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 2471 */       break;
+/*      */     case 3:
+/* 2473 */       xperiod = this.nx;
+/* 2474 */       yperiod = this.ny;
+/* 2475 */       zperiod = this.nz;
+/* 2476 */       break;
+/*      */     default:
+/* 2478 */       throw_get("XZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 2483 */       int offset = x + y * this.nx;
+/* 2484 */       int leni = buffer.length;
+/* 2485 */       int lenj = buffer[0].length;
+/* 2486 */       int yp = y;
+/* 2487 */       while (yp < 0)
+/* 2488 */         yp += yperiod;
+/* 2489 */       while (yp >= this.ny) {
+/* 2490 */         yp = yperiod - yp;
+/* 2491 */         yp = yp < 0 ? -yp : yp;
+/*      */       }
+/* 2493 */       yp *= this.nx;
+/* 2494 */       for (int j = 0; j < lenj; j++) {
+/* 2495 */         int zp = z + j;
+/* 2496 */         while (zp < 0)
+/* 2497 */           zp += zperiod;
+/* 2498 */         while (zp >= this.nz) {
+/* 2499 */           zp = zperiod - yp;
+/* 2500 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 2502 */         for (int i = 0; i < leni; i++) {
+/* 2503 */           int xp = x + i;
+/* 2504 */           while (xp < 0)
+/* 2505 */             xp += xperiod;
+/* 2506 */           while (xp >= this.nx) {
+/* 2507 */             xp = xperiod - xp;
+/* 2508 */             xp = xp < 0 ? -xp : xp;
+/*      */           }
+/* 2510 */           buffer[i][j] = ((short)(int)((double[])(double[])this.data[zp])[(xp + yp)]);
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 2515 */       throw_get("XZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockXZ(int x, int y, int z, float[][] buffer, byte boundaryConditions)
+/*      */   {
+/* 2530 */     int xperiod = 0;
+/* 2531 */     int yperiod = 0;
+/* 2532 */     int zperiod = 0;
+/* 2533 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 2535 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 2536 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 2537 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 2538 */       break;
+/*      */     case 3:
+/* 2540 */       xperiod = this.nx;
+/* 2541 */       yperiod = this.ny;
+/* 2542 */       zperiod = this.nz;
+/* 2543 */       break;
+/*      */     default:
+/* 2545 */       throw_get("XZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 2550 */       int offset = x + y * this.nx;
+/* 2551 */       int leni = buffer.length;
+/* 2552 */       int lenj = buffer[0].length;
+/* 2553 */       int yp = y;
+/* 2554 */       while (yp < 0)
+/* 2555 */         yp += yperiod;
+/* 2556 */       while (yp >= this.ny) {
+/* 2557 */         yp = yperiod - yp;
+/* 2558 */         yp = yp < 0 ? -yp : yp;
+/*      */       }
+/* 2560 */       yp *= this.nx;
+/* 2561 */       for (int j = 0; j < lenj; j++) {
+/* 2562 */         int zp = z + j;
+/* 2563 */         while (zp < 0)
+/* 2564 */           zp += zperiod;
+/* 2565 */         while (zp >= this.nz) {
+/* 2566 */           zp = zperiod - yp;
+/* 2567 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 2569 */         for (int i = 0; i < leni; i++) {
+/* 2570 */           int xp = x + i;
+/* 2571 */           while (xp < 0)
+/* 2572 */             xp += xperiod;
+/* 2573 */           while (xp >= this.nx) {
+/* 2574 */             xp = xperiod - xp;
+/* 2575 */             xp = xp < 0 ? -xp : xp;
+/*      */           }
+/* 2577 */           buffer[i][j] = ((float)((double[])(double[])this.data[zp])[(xp + yp)]);
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 2582 */       throw_get("XZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockXZ(int x, int y, int z, double[][] buffer, byte boundaryConditions)
+/*      */   {
+/* 2597 */     int xperiod = 0;
+/* 2598 */     int yperiod = 0;
+/* 2599 */     int zperiod = 0;
+/* 2600 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 2602 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 2603 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 2604 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 2605 */       break;
+/*      */     case 3:
+/* 2607 */       xperiod = this.nx;
+/* 2608 */       yperiod = this.ny;
+/* 2609 */       zperiod = this.nz;
+/* 2610 */       break;
+/*      */     default:
+/* 2612 */       throw_get("XZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 2617 */       int offset = x + y * this.nx;
+/* 2618 */       int leni = buffer.length;
+/* 2619 */       int lenj = buffer[0].length;
+/* 2620 */       int yp = y;
+/* 2621 */       while (yp < 0)
+/* 2622 */         yp += yperiod;
+/* 2623 */       while (yp >= this.ny) {
+/* 2624 */         yp = yperiod - yp;
+/* 2625 */         yp = yp < 0 ? -yp : yp;
+/*      */       }
+/* 2627 */       yp *= this.nx;
+/* 2628 */       for (int j = 0; j < lenj; j++) {
+/* 2629 */         int zp = z + j;
+/* 2630 */         while (zp < 0)
+/* 2631 */           zp += zperiod;
+/* 2632 */         while (zp >= this.nz) {
+/* 2633 */           zp = zperiod - yp;
+/* 2634 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 2636 */         for (int i = 0; i < leni; i++) {
+/* 2637 */           int xp = x + i;
+/* 2638 */           while (xp < 0)
+/* 2639 */             xp += xperiod;
+/* 2640 */           while (xp >= this.nx) {
+/* 2641 */             xp = xperiod - xp;
+/* 2642 */             xp = xp < 0 ? -xp : xp;
+/*      */           }
+/* 2644 */           buffer[i][j] = ((double[])(double[])this.data[zp])[(xp + yp)];
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 2649 */       throw_get("XZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockYZ(int x, int y, int z, byte[][] buffer, byte boundaryConditions)
+/*      */   {
+/* 2665 */     int xperiod = 0;
+/* 2666 */     int yperiod = 0;
+/* 2667 */     int zperiod = 0;
+/* 2668 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 2670 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 2671 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 2672 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 2673 */       break;
+/*      */     case 3:
+/* 2675 */       xperiod = this.nx;
+/* 2676 */       yperiod = this.ny;
+/* 2677 */       zperiod = this.nz;
+/* 2678 */       break;
+/*      */     default:
+/* 2680 */       throw_get("YZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 2685 */       int offset = x + y * this.nx;
+/* 2686 */       int leni = buffer.length;
+/* 2687 */       int lenj = buffer[0].length;
+/* 2688 */       int xp = x;
+/* 2689 */       while (xp < 0)
+/* 2690 */         xp += xperiod;
+/* 2691 */       while (xp >= this.nx) {
+/* 2692 */         xp = xperiod - xp;
+/* 2693 */         xp = xp < 0 ? -xp : xp;
+/*      */       }
+/* 2695 */       for (int j = 0; j < lenj; j++) {
+/* 2696 */         int zp = z + j;
+/* 2697 */         while (zp < 0)
+/* 2698 */           zp += zperiod;
+/* 2699 */         while (zp >= this.nz) {
+/* 2700 */           zp = zperiod - zp;
+/* 2701 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 2703 */         for (int i = 0; i < leni; i++) {
+/* 2704 */           int yp = y + i;
+/* 2705 */           while (yp < 0)
+/* 2706 */             yp += yperiod;
+/* 2707 */           while (yp >= this.ny) {
+/* 2708 */             yp = yperiod - yp;
+/* 2709 */             yp = yp < 0 ? -yp : yp;
+/*      */           }
+/* 2711 */           buffer[i][j] = ((byte)(int)((double[])(double[])this.data[zp])[(xp + yp * this.nx)]);
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 2716 */       throw_get("YZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockYZ(int x, int y, int z, short[][] buffer, byte boundaryConditions)
+/*      */   {
+/* 2731 */     int xperiod = 0;
+/* 2732 */     int yperiod = 0;
+/* 2733 */     int zperiod = 0;
+/* 2734 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 2736 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 2737 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 2738 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 2739 */       break;
+/*      */     case 3:
+/* 2741 */       xperiod = this.nx;
+/* 2742 */       yperiod = this.ny;
+/* 2743 */       zperiod = this.nz;
+/* 2744 */       break;
+/*      */     default:
+/* 2746 */       throw_get("YZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 2751 */       int offset = x + y * this.nx;
+/* 2752 */       int leni = buffer.length;
+/* 2753 */       int lenj = buffer[0].length;
+/* 2754 */       int xp = x;
+/* 2755 */       while (xp < 0)
+/* 2756 */         xp += xperiod;
+/* 2757 */       while (xp >= this.nx) {
+/* 2758 */         xp = xperiod - xp;
+/* 2759 */         xp = xp < 0 ? -xp : xp;
+/*      */       }
+/* 2761 */       for (int j = 0; j < lenj; j++) {
+/* 2762 */         int zp = z + j;
+/* 2763 */         while (zp < 0)
+/* 2764 */           zp += zperiod;
+/* 2765 */         while (zp >= this.nz) {
+/* 2766 */           zp = zperiod - zp;
+/* 2767 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 2769 */         for (int i = 0; i < leni; i++) {
+/* 2770 */           int yp = y + i;
+/* 2771 */           while (yp < 0)
+/* 2772 */             yp += yperiod;
+/* 2773 */           while (yp >= this.ny) {
+/* 2774 */             yp = yperiod - yp;
+/* 2775 */             yp = yp < 0 ? -yp : yp;
+/*      */           }
+/* 2777 */           buffer[i][j] = ((short)(int)((double[])(double[])this.data[zp])[(xp + yp * this.nx)]);
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 2782 */       throw_get("YZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockYZ(int x, int y, int z, float[][] buffer, byte boundaryConditions)
+/*      */   {
+/* 2797 */     int xperiod = 0;
+/* 2798 */     int yperiod = 0;
+/* 2799 */     int zperiod = 0;
+/* 2800 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 2802 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 2803 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 2804 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 2805 */       break;
+/*      */     case 3:
+/* 2807 */       xperiod = this.nx;
+/* 2808 */       yperiod = this.ny;
+/* 2809 */       zperiod = this.nz;
+/* 2810 */       break;
+/*      */     default:
+/* 2812 */       throw_get("YZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 2817 */       int offset = x + y * this.nx;
+/* 2818 */       int leni = buffer.length;
+/* 2819 */       int lenj = buffer[0].length;
+/* 2820 */       int xp = x;
+/* 2821 */       while (xp < 0)
+/* 2822 */         xp += xperiod;
+/* 2823 */       while (xp >= this.nx) {
+/* 2824 */         xp = xperiod - xp;
+/* 2825 */         xp = xp < 0 ? -xp : xp;
+/*      */       }
+/* 2827 */       for (int j = 0; j < lenj; j++) {
+/* 2828 */         int zp = z + j;
+/* 2829 */         while (zp < 0)
+/* 2830 */           zp += zperiod;
+/* 2831 */         while (zp >= this.nz) {
+/* 2832 */           zp = zperiod - zp;
+/* 2833 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 2835 */         for (int i = 0; i < leni; i++) {
+/* 2836 */           int yp = y + i;
+/* 2837 */           while (yp < 0)
+/* 2838 */             yp += yperiod;
+/* 2839 */           while (yp >= this.ny) {
+/* 2840 */             yp = yperiod - yp;
+/* 2841 */             yp = yp < 0 ? -yp : yp;
+/*      */           }
+/* 2843 */           buffer[i][j] = ((float)((double[])(double[])this.data[zp])[(xp + yp * this.nx)]);
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 2848 */       throw_get("YZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockYZ(int x, int y, int z, double[][] buffer, byte boundaryConditions)
+/*      */   {
+/* 2863 */     int xperiod = 0;
+/* 2864 */     int yperiod = 0;
+/* 2865 */     int zperiod = 0;
+/* 2866 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 2868 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 2869 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 2870 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 2871 */       break;
+/*      */     case 3:
+/* 2873 */       xperiod = this.nx;
+/* 2874 */       yperiod = this.ny;
+/* 2875 */       zperiod = this.nz;
+/* 2876 */       break;
+/*      */     default:
+/* 2878 */       throw_get("YZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 2883 */       int offset = x + y * this.nx;
+/* 2884 */       int leni = buffer.length;
+/* 2885 */       int lenj = buffer[0].length;
+/* 2886 */       int xp = x;
+/* 2887 */       while (xp < 0)
+/* 2888 */         xp += xperiod;
+/* 2889 */       while (xp >= this.nx) {
+/* 2890 */         xp = xperiod - xp;
+/* 2891 */         xp = xp < 0 ? -xp : xp;
+/*      */       }
+/* 2893 */       for (int j = 0; j < lenj; j++) {
+/* 2894 */         int zp = z + j;
+/* 2895 */         while (zp < 0)
+/* 2896 */           zp += zperiod;
+/* 2897 */         while (zp >= this.nz) {
+/* 2898 */           zp = zperiod - zp;
+/* 2899 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 2901 */         for (int i = 0; i < leni; i++) {
+/* 2902 */           int yp = y + i;
+/* 2903 */           while (yp < 0)
+/* 2904 */             yp += yperiod;
+/* 2905 */           while (yp >= this.ny) {
+/* 2906 */             yp = yperiod - yp;
+/* 2907 */             yp = yp < 0 ? -yp : yp;
+/*      */           }
+/* 2909 */           buffer[i][j] = ((double[])(double[])this.data[zp])[(xp + yp * this.nx)];
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 2914 */       throw_get("YZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockXYZ(int x, int y, int z, byte[][][] buffer, byte boundaryConditions)
+/*      */   {
+/* 2930 */     int xperiod = 0;
+/* 2931 */     int yperiod = 0;
+/* 2932 */     int zperiod = 0;
+/* 2933 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 2935 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 2936 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 2937 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 2938 */       break;
+/*      */     case 3:
+/* 2940 */       xperiod = this.nx;
+/* 2941 */       yperiod = this.ny;
+/* 2942 */       zperiod = this.nz;
+/* 2943 */       break;
+/*      */     default:
+/* 2945 */       throw_get("XYZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 2950 */       int offset = x + y * this.nx;
+/* 2951 */       int leni = buffer.length;
+/* 2952 */       int lenj = buffer[0].length;
+/* 2953 */       int lenk = buffer[0][0].length;
+/* 2954 */       for (int k = 0; k < lenk; k++) {
+/* 2955 */         int zp = z + k;
+/* 2956 */         while (zp < 0)
+/* 2957 */           zp += zperiod;
+/* 2958 */         while (zp >= this.nz) {
+/* 2959 */           zp = zperiod - zp;
+/* 2960 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 2962 */         double[] tmp = (double[])this.data[zp];
+/* 2963 */         for (int j = 0; j < lenj; j++) {
+/* 2964 */           int yp = y + j;
+/* 2965 */           while (yp < 0)
+/* 2966 */             yp += yperiod;
+/* 2967 */           while (yp >= this.ny) {
+/* 2968 */             yp = yperiod - yp;
+/* 2969 */             yp = yp < 0 ? -yp : yp;
+/*      */           }
+/* 2971 */           yp *= this.nx;
+/* 2972 */           for (int i = 0; i < leni; i++) {
+/* 2973 */             int xp = x + i;
+/* 2974 */             while (xp < 0)
+/* 2975 */               xp += xperiod;
+/* 2976 */             while (xp >= this.nx) {
+/* 2977 */               xp = xperiod - xp;
+/* 2978 */               xp = xp < 0 ? -xp : xp;
+/*      */             }
+/* 2980 */             buffer[i][j][k] = ((byte)(int)tmp[(xp + yp)]);
+/*      */           }
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 2986 */       throw_get("XYZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockXYZ(int x, int y, int z, short[][][] buffer, byte boundaryConditions)
+/*      */   {
+/* 3001 */     int xperiod = 0;
+/* 3002 */     int yperiod = 0;
+/* 3003 */     int zperiod = 0;
+/* 3004 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 3006 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 3007 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 3008 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 3009 */       break;
+/*      */     case 3:
+/* 3011 */       xperiod = this.nx;
+/* 3012 */       yperiod = this.ny;
+/* 3013 */       zperiod = this.nz;
+/* 3014 */       break;
+/*      */     default:
+/* 3016 */       throw_get("XYZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 3021 */       int offset = x + y * this.nx;
+/* 3022 */       int leni = buffer.length;
+/* 3023 */       int lenj = buffer[0].length;
+/* 3024 */       int lenk = buffer[0][0].length;
+/* 3025 */       for (int k = 0; k < lenk; k++) {
+/* 3026 */         int zp = z + k;
+/* 3027 */         while (zp < 0)
+/* 3028 */           zp += zperiod;
+/* 3029 */         while (zp >= this.nz) {
+/* 3030 */           zp = zperiod - zp;
+/* 3031 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 3033 */         double[] tmp = (double[])this.data[zp];
+/* 3034 */         for (int j = 0; j < lenj; j++) {
+/* 3035 */           int yp = y + j;
+/* 3036 */           while (yp < 0)
+/* 3037 */             yp += yperiod;
+/* 3038 */           while (yp >= this.ny) {
+/* 3039 */             yp = yperiod - yp;
+/* 3040 */             yp = yp < 0 ? -yp : yp;
+/*      */           }
+/* 3042 */           yp *= this.nx;
+/* 3043 */           for (int i = 0; i < leni; i++) {
+/* 3044 */             int xp = x + i;
+/* 3045 */             while (xp < 0)
+/* 3046 */               xp += xperiod;
+/* 3047 */             while (xp >= this.nx) {
+/* 3048 */               xp = xperiod - xp;
+/* 3049 */               xp = xp < 0 ? -xp : xp;
+/*      */             }
+/* 3051 */             buffer[i][j][k] = ((short)(int)tmp[(xp + yp)]);
+/*      */           }
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 3057 */       throw_get("XYZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockXYZ(int x, int y, int z, float[][][] buffer, byte boundaryConditions)
+/*      */   {
+/* 3072 */     int xperiod = 0;
+/* 3073 */     int yperiod = 0;
+/* 3074 */     int zperiod = 0;
+/* 3075 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 3077 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 3078 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 3079 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 3080 */       break;
+/*      */     case 3:
+/* 3082 */       xperiod = this.nx;
+/* 3083 */       yperiod = this.ny;
+/* 3084 */       zperiod = this.nz;
+/* 3085 */       break;
+/*      */     default:
+/* 3087 */       throw_get("XYZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 3092 */       int offset = x + y * this.nx;
+/* 3093 */       int leni = buffer.length;
+/* 3094 */       int lenj = buffer[0].length;
+/* 3095 */       int lenk = buffer[0][0].length;
+/* 3096 */       for (int k = 0; k < lenk; k++) {
+/* 3097 */         int zp = z + k;
+/* 3098 */         while (zp < 0)
+/* 3099 */           zp += zperiod;
+/* 3100 */         while (zp >= this.nz) {
+/* 3101 */           zp = zperiod - zp;
+/* 3102 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 3104 */         double[] tmp = (double[])this.data[zp];
+/* 3105 */         for (int j = 0; j < lenj; j++) {
+/* 3106 */           int yp = y + j;
+/* 3107 */           while (yp < 0)
+/* 3108 */             yp += yperiod;
+/* 3109 */           while (yp >= this.ny) {
+/* 3110 */             yp = yperiod - yp;
+/* 3111 */             yp = yp < 0 ? -yp : yp;
+/*      */           }
+/* 3113 */           yp *= this.nx;
+/* 3114 */           for (int i = 0; i < leni; i++) {
+/* 3115 */             int xp = x + i;
+/* 3116 */             while (xp < 0)
+/* 3117 */               xp += xperiod;
+/* 3118 */             while (xp >= this.nx) {
+/* 3119 */               xp = xperiod - xp;
+/* 3120 */               xp = xp < 0 ? -xp : xp;
+/*      */             }
+/* 3122 */             buffer[i][j][k] = ((float)tmp[(xp + yp)]);
+/*      */           }
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 3128 */       throw_get("XYZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getBlockXYZ(int x, int y, int z, double[][][] buffer, byte boundaryConditions)
+/*      */   {
+/* 3143 */     int xperiod = 0;
+/* 3144 */     int yperiod = 0;
+/* 3145 */     int zperiod = 0;
+/* 3146 */     switch (boundaryConditions) {
+/*      */     case 2:
+/* 3148 */       xperiod = this.nx <= 1 ? 1 : 2 * this.nx - 2;
+/* 3149 */       yperiod = this.ny <= 1 ? 1 : 2 * this.ny - 2;
+/* 3150 */       zperiod = this.nz <= 1 ? 1 : 2 * this.nz - 2;
+/* 3151 */       break;
+/*      */     case 3:
+/* 3153 */       xperiod = this.nx;
+/* 3154 */       yperiod = this.ny;
+/* 3155 */       zperiod = this.nz;
+/* 3156 */       break;
+/*      */     default:
+/* 3158 */       throw_get("XYZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */ 
+/*      */     try
+/*      */     {
+/* 3163 */       int offset = x + y * this.nx;
+/* 3164 */       int leni = buffer.length;
+/* 3165 */       int lenj = buffer[0].length;
+/* 3166 */       int lenk = buffer[0][0].length;
+/* 3167 */       for (int k = 0; k < lenk; k++) {
+/* 3168 */         int zp = z + k;
+/* 3169 */         while (zp < 0)
+/* 3170 */           zp += zperiod;
+/* 3171 */         while (zp >= this.nz) {
+/* 3172 */           zp = zperiod - zp;
+/* 3173 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 3175 */         double[] tmp = (double[])this.data[zp];
+/* 3176 */         for (int j = 0; j < lenj; j++) {
+/* 3177 */           int yp = y + j;
+/* 3178 */           while (yp < 0)
+/* 3179 */             yp += yperiod;
+/* 3180 */           while (yp >= this.ny) {
+/* 3181 */             yp = yperiod - yp;
+/* 3182 */             yp = yp < 0 ? -yp : yp;
+/*      */           }
+/* 3184 */           yp *= this.nx;
+/* 3185 */           for (int i = 0; i < leni; i++) {
+/* 3186 */             int xp = x + i;
+/* 3187 */             while (xp < 0)
+/* 3188 */               xp += xperiod;
+/* 3189 */             while (xp >= this.nx) {
+/* 3190 */               xp = xperiod - xp;
+/* 3191 */               xp = xp < 0 ? -xp : xp;
+/*      */             }
+/* 3193 */             buffer[i][j][k] = tmp[(xp + yp)];
+/*      */           }
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 3199 */       throw_get("XYZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodX(int x, int y, int z, byte[] buffer, byte boundaryConditions)
+/*      */   {
+/* 3223 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 3224 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 3225 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 3228 */       int offset = x + y * this.nx;
+/* 3229 */       int leni = buffer.length;
+/* 3230 */       int zp = z;
+/* 3231 */       while (zp < 0)
+/* 3232 */         zp += zperiod;
+/* 3233 */       while (zp >= this.nz) {
+/* 3234 */         zp = zperiod - zp;
+/* 3235 */         zp = zp < 0 ? -zp : zp;
+/*      */       }
+/* 3237 */       int yp = y;
+/* 3238 */       while (yp < 0)
+/* 3239 */         yp += yperiod;
+/* 3240 */       while (yp >= this.ny) {
+/* 3241 */         yp = yperiod - yp;
+/* 3242 */         yp = yp < 0 ? -yp : yp;
+/*      */       }
+/* 3244 */       yp *= this.nx;
+/* 3245 */       int xs = x - leni / 2;
+/* 3246 */       double[] tmp = (double[])this.data[zp];
+/* 3247 */       for (int i = 0; i < leni; i++) {
+/* 3248 */         int xp = xs + i;
+/* 3249 */         while (xp < 0)
+/* 3250 */           xp += xperiod;
+/* 3251 */         while (xp >= this.nx) {
+/* 3252 */           xp = xperiod - xp;
+/* 3253 */           xp = xp < 0 ? -xp : xp;
+/*      */         }
+/* 3255 */         buffer[i] = ((byte)(int)tmp[(xp + yp)]);
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 3259 */       throw_get("X", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodX(int x, int y, int z, short[] buffer, byte boundaryConditions)
+/*      */   {
+/* 3274 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 3275 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 3276 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 3279 */       int offset = x + y * this.nx;
+/* 3280 */       int leni = buffer.length;
+/* 3281 */       int zp = z;
+/* 3282 */       while (zp < 0)
+/* 3283 */         zp += zperiod;
+/* 3284 */       while (zp >= this.nz) {
+/* 3285 */         zp = zperiod - zp;
+/* 3286 */         zp = zp < 0 ? -zp : zp;
+/*      */       }
+/* 3288 */       int yp = y;
+/* 3289 */       while (yp < 0)
+/* 3290 */         yp += yperiod;
+/* 3291 */       while (yp >= this.ny) {
+/* 3292 */         yp = yperiod - yp;
+/* 3293 */         yp = yp < 0 ? -yp : yp;
+/*      */       }
+/* 3295 */       yp *= this.nx;
+/* 3296 */       int xs = x - leni / 2;
+/* 3297 */       double[] tmp = (double[])this.data[zp];
+/* 3298 */       for (int i = 0; i < leni; i++) {
+/* 3299 */         int xp = xs + i;
+/* 3300 */         while (xp < 0)
+/* 3301 */           xp += xperiod;
+/* 3302 */         while (xp >= this.nx) {
+/* 3303 */           xp = xperiod - xp;
+/* 3304 */           xp = xp < 0 ? -xp : xp;
+/*      */         }
+/* 3306 */         buffer[i] = ((short)(int)tmp[(xp + yp)]);
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 3310 */       throw_get("X", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodX(int x, int y, int z, float[] buffer, byte boundaryConditions)
+/*      */   {
+/* 3325 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 3326 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 3327 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 3330 */       int offset = x + y * this.nx;
+/* 3331 */       int leni = buffer.length;
+/* 3332 */       int zp = z;
+/* 3333 */       while (zp < 0)
+/* 3334 */         zp += zperiod;
+/* 3335 */       while (zp >= this.nz) {
+/* 3336 */         zp = zperiod - zp;
+/* 3337 */         zp = zp < 0 ? -zp : zp;
+/*      */       }
+/* 3339 */       int yp = y;
+/* 3340 */       while (yp < 0)
+/* 3341 */         yp += yperiod;
+/* 3342 */       while (yp >= this.ny) {
+/* 3343 */         yp = yperiod - yp;
+/* 3344 */         yp = yp < 0 ? -yp : yp;
+/*      */       }
+/* 3346 */       yp *= this.nx;
+/* 3347 */       int xs = x - leni / 2;
+/* 3348 */       double[] tmp = (double[])this.data[zp];
+/* 3349 */       for (int i = 0; i < leni; i++) {
+/* 3350 */         int xp = xs + i;
+/* 3351 */         while (xp < 0)
+/* 3352 */           xp += xperiod;
+/* 3353 */         while (xp >= this.nx) {
+/* 3354 */           xp = xperiod - xp;
+/* 3355 */           xp = xp < 0 ? -xp : xp;
+/*      */         }
+/* 3357 */         buffer[i] = ((float)tmp[(xp + yp)]);
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 3361 */       throw_get("X", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodX(int x, int y, int z, double[] buffer, byte boundaryConditions)
+/*      */   {
+/* 3376 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 3377 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 3378 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 3381 */       int offset = x + y * this.nx;
+/* 3382 */       int leni = buffer.length;
+/* 3383 */       int zp = z;
+/* 3384 */       while (zp < 0)
+/* 3385 */         zp += zperiod;
+/* 3386 */       while (zp >= this.nz) {
+/* 3387 */         zp = zperiod - zp;
+/* 3388 */         zp = zp < 0 ? -zp : zp;
+/*      */       }
+/* 3390 */       int yp = y;
+/* 3391 */       while (yp < 0)
+/* 3392 */         yp += yperiod;
+/* 3393 */       while (yp >= this.ny) {
+/* 3394 */         yp = yperiod - yp;
+/* 3395 */         yp = yp < 0 ? -yp : yp;
+/*      */       }
+/* 3397 */       yp *= this.nx;
+/* 3398 */       int xs = x - leni / 2;
+/* 3399 */       double[] tmp = (double[])this.data[zp];
+/* 3400 */       for (int i = 0; i < leni; i++) {
+/* 3401 */         int xp = xs + i;
+/* 3402 */         while (xp < 0)
+/* 3403 */           xp += xperiod;
+/* 3404 */         while (xp >= this.nx) {
+/* 3405 */           xp = xperiod - xp;
+/* 3406 */           xp = xp < 0 ? -xp : xp;
+/*      */         }
+/* 3408 */         buffer[i] = tmp[(xp + yp)];
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 3412 */       throw_get("X", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodY(int x, int y, int z, byte[] buffer, byte boundaryConditions)
+/*      */   {
+/* 3428 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 3429 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 3430 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 3433 */       int offset = x + y * this.nx;
+/* 3434 */       int leni = buffer.length;
+/* 3435 */       int zp = z;
+/* 3436 */       while (zp < 0)
+/* 3437 */         zp += zperiod;
+/* 3438 */       while (zp >= this.nz) {
+/* 3439 */         zp = zperiod - zp;
+/* 3440 */         zp = zp < 0 ? -zp : zp;
+/*      */       }
+/* 3442 */       int xp = x;
+/* 3443 */       while (xp < 0)
+/* 3444 */         xp += xperiod;
+/* 3445 */       while (xp >= this.nx) {
+/* 3446 */         xp = xperiod - xp;
+/* 3447 */         xp = xp < 0 ? -xp : xp;
+/*      */       }
+/* 3449 */       int ys = y - leni / 2;
+/* 3450 */       double[] tmp = (double[])this.data[zp];
+/* 3451 */       for (int i = 0; i < leni; i++) {
+/* 3452 */         int yp = ys + i;
+/* 3453 */         while (yp < 0)
+/* 3454 */           yp += yperiod;
+/* 3455 */         while (yp >= this.ny) {
+/* 3456 */           yp = yperiod - yp;
+/* 3457 */           yp = yp < 0 ? -yp : yp;
+/*      */         }
+/* 3459 */         buffer[i] = ((byte)(int)tmp[(xp + yp * this.nx)]);
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 3463 */       throw_get("Y", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodY(int x, int y, int z, short[] buffer, byte boundaryConditions)
+/*      */   {
+/* 3478 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 3479 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 3480 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 3483 */       int offset = x + y * this.nx;
+/* 3484 */       int leni = buffer.length;
+/* 3485 */       int zp = z;
+/* 3486 */       while (zp < 0)
+/* 3487 */         zp += zperiod;
+/* 3488 */       while (zp >= this.nz) {
+/* 3489 */         zp = zperiod - zp;
+/* 3490 */         zp = zp < 0 ? -zp : zp;
+/*      */       }
+/* 3492 */       int xp = x;
+/* 3493 */       while (xp < 0)
+/* 3494 */         xp += xperiod;
+/* 3495 */       while (xp >= this.nx) {
+/* 3496 */         xp = xperiod - xp;
+/* 3497 */         xp = xp < 0 ? -xp : xp;
+/*      */       }
+/* 3499 */       int ys = y - leni / 2;
+/* 3500 */       double[] tmp = (double[])this.data[zp];
+/* 3501 */       for (int i = 0; i < leni; i++) {
+/* 3502 */         int yp = ys + i;
+/* 3503 */         while (yp < 0)
+/* 3504 */           yp += yperiod;
+/* 3505 */         while (yp >= this.ny) {
+/* 3506 */           yp = yperiod - yp;
+/* 3507 */           yp = yp < 0 ? -yp : yp;
+/*      */         }
+/* 3509 */         buffer[i] = ((short)(int)tmp[(xp + yp * this.nx)]);
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 3513 */       throw_get("Y", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodY(int x, int y, int z, float[] buffer, byte boundaryConditions)
+/*      */   {
+/* 3528 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 3529 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 3530 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 3533 */       int offset = x + y * this.nx;
+/* 3534 */       int leni = buffer.length;
+/* 3535 */       int zp = z;
+/* 3536 */       while (zp < 0)
+/* 3537 */         zp += zperiod;
+/* 3538 */       while (zp >= this.nz) {
+/* 3539 */         zp = zperiod - zp;
+/* 3540 */         zp = zp < 0 ? -zp : zp;
+/*      */       }
+/* 3542 */       int xp = x;
+/* 3543 */       while (xp < 0)
+/* 3544 */         xp += xperiod;
+/* 3545 */       while (xp >= this.nx) {
+/* 3546 */         xp = xperiod - xp;
+/* 3547 */         xp = xp < 0 ? -xp : xp;
+/*      */       }
+/* 3549 */       int ys = y - leni / 2;
+/* 3550 */       double[] tmp = (double[])this.data[zp];
+/* 3551 */       for (int i = 0; i < leni; i++) {
+/* 3552 */         int yp = ys + i;
+/* 3553 */         while (yp < 0)
+/* 3554 */           yp += yperiod;
+/* 3555 */         while (yp >= this.ny) {
+/* 3556 */           yp = yperiod - yp;
+/* 3557 */           yp = yp < 0 ? -yp : yp;
+/*      */         }
+/* 3559 */         buffer[i] = ((float)tmp[(xp + yp * this.nx)]);
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 3563 */       throw_get("Y", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodY(int x, int y, int z, double[] buffer, byte boundaryConditions)
+/*      */   {
+/* 3578 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 3579 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 3580 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 3583 */       int offset = x + y * this.nx;
+/* 3584 */       int leni = buffer.length;
+/* 3585 */       int zp = z;
+/* 3586 */       while (zp < 0)
+/* 3587 */         zp += zperiod;
+/* 3588 */       while (zp >= this.nz) {
+/* 3589 */         zp = zperiod - zp;
+/* 3590 */         zp = zp < 0 ? -zp : zp;
+/*      */       }
+/* 3592 */       int xp = x;
+/* 3593 */       while (xp < 0)
+/* 3594 */         xp += xperiod;
+/* 3595 */       while (xp >= this.nx) {
+/* 3596 */         xp = xperiod - xp;
+/* 3597 */         xp = xp < 0 ? -xp : xp;
+/*      */       }
+/* 3599 */       int ys = y - leni / 2;
+/* 3600 */       double[] tmp = (double[])this.data[zp];
+/* 3601 */       for (int i = 0; i < leni; i++) {
+/* 3602 */         int yp = ys + i;
+/* 3603 */         while (yp < 0)
+/* 3604 */           yp += yperiod;
+/* 3605 */         while (yp >= this.ny) {
+/* 3606 */           yp = yperiod - yp;
+/* 3607 */           yp = yp < 0 ? -yp : yp;
+/*      */         }
+/* 3609 */         buffer[i] = tmp[(xp + yp * this.nx)];
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 3613 */       throw_get("Y", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodZ(int x, int y, int z, byte[] buffer, byte boundaryConditions)
+/*      */   {
+/* 3630 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 3631 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 3632 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 3635 */       int offset = x + y * this.nx;
+/* 3636 */       int leni = buffer.length;
+/* 3637 */       int xp = x;
+/* 3638 */       while (xp < 0)
+/* 3639 */         xp += xperiod;
+/* 3640 */       while (xp >= this.nx) {
+/* 3641 */         xp = xperiod - xp;
+/* 3642 */         xp = xp < 0 ? -xp : xp;
+/*      */       }
+/* 3644 */       int yp = y;
+/* 3645 */       while (yp < 0)
+/* 3646 */         yp += yperiod;
+/* 3647 */       while (yp >= this.ny) {
+/* 3648 */         yp = yperiod - yp;
+/* 3649 */         yp = yp < 0 ? -yp : yp;
+/*      */       }
+/* 3651 */       int xyp = xp + yp * this.nx;
+/* 3652 */       int zs = z - leni / 2;
+/* 3653 */       for (int i = 0; i < leni; i++) {
+/* 3654 */         int zp = zs + i;
+/* 3655 */         while (zp < 0)
+/* 3656 */           zp += zperiod;
+/* 3657 */         while (zp >= this.nz) {
+/* 3658 */           zp = zperiod - zp;
+/* 3659 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 3661 */         buffer[i] = ((byte)(int)((double[])(double[])this.data[zp])[xyp]);
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 3665 */       throw_get("Z", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodZ(int x, int y, int z, short[] buffer, byte boundaryConditions)
+/*      */   {
+/* 3681 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 3682 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 3683 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 3686 */       int offset = x + y * this.nx;
+/* 3687 */       int leni = buffer.length;
+/* 3688 */       int xp = x;
+/* 3689 */       while (xp < 0)
+/* 3690 */         xp += xperiod;
+/* 3691 */       while (xp >= this.nx) {
+/* 3692 */         xp = xperiod - xp;
+/* 3693 */         xp = xp < 0 ? -xp : xp;
+/*      */       }
+/* 3695 */       int yp = y;
+/* 3696 */       while (yp < 0)
+/* 3697 */         yp += yperiod;
+/* 3698 */       while (yp >= this.ny) {
+/* 3699 */         yp = yperiod - yp;
+/* 3700 */         yp = yp < 0 ? -yp : yp;
+/*      */       }
+/* 3702 */       int xyp = xp + yp * this.nx;
+/* 3703 */       int zs = z - leni / 2;
+/* 3704 */       for (int i = 0; i < leni; i++) {
+/* 3705 */         int zp = zs + i;
+/* 3706 */         while (zp < 0)
+/* 3707 */           zp += zperiod;
+/* 3708 */         while (zp >= this.nz) {
+/* 3709 */           zp = zperiod - zp;
+/* 3710 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 3712 */         buffer[i] = ((short)(int)((double[])(double[])this.data[zp])[xyp]);
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 3716 */       throw_get("Z", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodZ(int x, int y, int z, float[] buffer, byte boundaryConditions)
+/*      */   {
+/* 3732 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 3733 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 3734 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 3737 */       int offset = x + y * this.nx;
+/* 3738 */       int leni = buffer.length;
+/* 3739 */       int xp = x;
+/* 3740 */       while (xp < 0)
+/* 3741 */         xp += xperiod;
+/* 3742 */       while (xp >= this.nx) {
+/* 3743 */         xp = xperiod - xp;
+/* 3744 */         xp = xp < 0 ? -xp : xp;
+/*      */       }
+/* 3746 */       int yp = y;
+/* 3747 */       while (yp < 0)
+/* 3748 */         yp += yperiod;
+/* 3749 */       while (yp >= this.ny) {
+/* 3750 */         yp = yperiod - yp;
+/* 3751 */         yp = yp < 0 ? -yp : yp;
+/*      */       }
+/* 3753 */       int xyp = xp + yp * this.nx;
+/* 3754 */       int zs = z - leni / 2;
+/* 3755 */       for (int i = 0; i < leni; i++) {
+/* 3756 */         int zp = zs + i;
+/* 3757 */         while (zp < 0)
+/* 3758 */           zp += zperiod;
+/* 3759 */         while (zp >= this.nz) {
+/* 3760 */           zp = zperiod - zp;
+/* 3761 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 3763 */         buffer[i] = ((float)((double[])(double[])this.data[zp])[xyp]);
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 3767 */       throw_get("Z", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodZ(int x, int y, int z, double[] buffer, byte boundaryConditions)
+/*      */   {
+/* 3783 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 3784 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 3785 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 3788 */       int offset = x + y * this.nx;
+/* 3789 */       int leni = buffer.length;
+/* 3790 */       int xp = x;
+/* 3791 */       while (xp < 0)
+/* 3792 */         xp += xperiod;
+/* 3793 */       while (xp >= this.nx) {
+/* 3794 */         xp = xperiod - xp;
+/* 3795 */         xp = xp < 0 ? -xp : xp;
+/*      */       }
+/* 3797 */       int yp = y;
+/* 3798 */       while (yp < 0)
+/* 3799 */         yp += yperiod;
+/* 3800 */       while (yp >= this.ny) {
+/* 3801 */         yp = yperiod - yp;
+/* 3802 */         yp = yp < 0 ? -yp : yp;
+/*      */       }
+/* 3804 */       int xyp = xp + yp * this.nx;
+/* 3805 */       int zs = z - leni / 2;
+/* 3806 */       for (int i = 0; i < leni; i++) {
+/* 3807 */         int zp = zs + i;
+/* 3808 */         while (zp < 0)
+/* 3809 */           zp += zperiod;
+/* 3810 */         while (zp >= this.nz) {
+/* 3811 */           zp = zperiod - zp;
+/* 3812 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 3814 */         buffer[i] = ((double[])(double[])this.data[zp])[xyp];
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 3818 */       throw_get("Z", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodXY(int x, int y, int z, byte[][] buffer, byte boundaryConditions)
+/*      */   {
+/* 3834 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 3835 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 3836 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 3839 */       int offset = x + y * this.nx;
+/* 3840 */       int leni = buffer.length;
+/* 3841 */       int lenj = buffer[0].length;
+/* 3842 */       int zp = z;
+/* 3843 */       while (zp < 0)
+/* 3844 */         zp += zperiod;
+/* 3845 */       while (zp >= this.nz) {
+/* 3846 */         zp = zperiod - zp;
+/* 3847 */         zp = zp < 0 ? -zp : zp;
+/*      */       }
+/* 3849 */       int xs = x - leni / 2;
+/* 3850 */       int ys = y - lenj / 2;
+/* 3851 */       double[] tmp = (double[])this.data[zp];
+/* 3852 */       for (int j = 0; j < lenj; j++) {
+/* 3853 */         int yp = ys + j;
+/* 3854 */         while (yp < 0)
+/* 3855 */           yp += yperiod;
+/* 3856 */         while (yp >= this.ny) {
+/* 3857 */           yp = yperiod - yp;
+/* 3858 */           yp = yp < 0 ? -yp : yp;
+/*      */         }
+/* 3860 */         yp *= this.nx;
+/* 3861 */         for (int i = 0; i < leni; i++) {
+/* 3862 */           int xp = xs + i;
+/* 3863 */           while (xp < 0)
+/* 3864 */             xp += xperiod;
+/* 3865 */           while (xp >= this.nx) {
+/* 3866 */             xp = xperiod - xp;
+/* 3867 */             xp = xp < 0 ? -xp : xp;
+/*      */           }
+/* 3869 */           buffer[i][j] = ((byte)(int)tmp[(xp + yp)]);
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 3874 */       throw_get("XY", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodXY(int x, int y, int z, short[][] buffer, byte boundaryConditions)
+/*      */   {
+/* 3889 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 3890 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 3891 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 3894 */       int offset = x + y * this.nx;
+/* 3895 */       int leni = buffer.length;
+/* 3896 */       int lenj = buffer[0].length;
+/* 3897 */       int zp = z;
+/* 3898 */       while (zp < 0)
+/* 3899 */         zp += zperiod;
+/* 3900 */       while (zp >= this.nz) {
+/* 3901 */         zp = zperiod - zp;
+/* 3902 */         zp = zp < 0 ? -zp : zp;
+/*      */       }
+/* 3904 */       int xs = x - leni / 2;
+/* 3905 */       int ys = y - lenj / 2;
+/* 3906 */       double[] tmp = (double[])this.data[zp];
+/* 3907 */       for (int j = 0; j < lenj; j++) {
+/* 3908 */         int yp = ys + j;
+/* 3909 */         while (yp < 0)
+/* 3910 */           yp += yperiod;
+/* 3911 */         while (yp >= this.ny) {
+/* 3912 */           yp = yperiod - yp;
+/* 3913 */           yp = yp < 0 ? -yp : yp;
+/*      */         }
+/* 3915 */         yp *= this.nx;
+/* 3916 */         for (int i = 0; i < leni; i++) {
+/* 3917 */           int xp = xs + i;
+/* 3918 */           while (xp < 0)
+/* 3919 */             xp += xperiod;
+/* 3920 */           while (xp >= this.nx) {
+/* 3921 */             xp = xperiod - xp;
+/* 3922 */             xp = xp < 0 ? -xp : xp;
+/*      */           }
+/* 3924 */           buffer[i][j] = ((short)(int)tmp[(xp + yp)]);
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 3929 */       throw_get("XY", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodXY(int x, int y, int z, float[][] buffer, byte boundaryConditions)
+/*      */   {
+/* 3944 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 3945 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 3946 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 3949 */       int offset = x + y * this.nx;
+/* 3950 */       int leni = buffer.length;
+/* 3951 */       int lenj = buffer[0].length;
+/* 3952 */       int zp = z;
+/* 3953 */       while (zp < 0)
+/* 3954 */         zp += zperiod;
+/* 3955 */       while (zp >= this.nz) {
+/* 3956 */         zp = zperiod - zp;
+/* 3957 */         zp = zp < 0 ? -zp : zp;
+/*      */       }
+/* 3959 */       int xs = x - leni / 2;
+/* 3960 */       int ys = y - lenj / 2;
+/* 3961 */       double[] tmp = (double[])this.data[zp];
+/* 3962 */       for (int j = 0; j < lenj; j++) {
+/* 3963 */         int yp = ys + j;
+/* 3964 */         while (yp < 0)
+/* 3965 */           yp += yperiod;
+/* 3966 */         while (yp >= this.ny) {
+/* 3967 */           yp = yperiod - yp;
+/* 3968 */           yp = yp < 0 ? -yp : yp;
+/*      */         }
+/* 3970 */         yp *= this.nx;
+/* 3971 */         for (int i = 0; i < leni; i++) {
+/* 3972 */           int xp = xs + i;
+/* 3973 */           while (xp < 0)
+/* 3974 */             xp += xperiod;
+/* 3975 */           while (xp >= this.nx) {
+/* 3976 */             xp = xperiod - xp;
+/* 3977 */             xp = xp < 0 ? -xp : xp;
+/*      */           }
+/* 3979 */           buffer[i][j] = ((float)tmp[(xp + yp)]);
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 3984 */       throw_get("XY", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodXY(int x, int y, int z, double[][] buffer, byte boundaryConditions)
+/*      */   {
+/* 3999 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 4000 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 4001 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 4004 */       int offset = x + y * this.nx;
+/* 4005 */       int leni = buffer.length;
+/* 4006 */       int lenj = buffer[0].length;
+/* 4007 */       int zp = z;
+/* 4008 */       while (zp < 0)
+/* 4009 */         zp += zperiod;
+/* 4010 */       while (zp >= this.nz) {
+/* 4011 */         zp = zperiod - zp;
+/* 4012 */         zp = zp < 0 ? -zp : zp;
+/*      */       }
+/* 4014 */       int xs = x - leni / 2;
+/* 4015 */       int ys = y - lenj / 2;
+/* 4016 */       double[] tmp = (double[])this.data[zp];
+/* 4017 */       for (int j = 0; j < lenj; j++) {
+/* 4018 */         int yp = ys + j;
+/* 4019 */         while (yp < 0)
+/* 4020 */           yp += yperiod;
+/* 4021 */         while (yp >= this.ny) {
+/* 4022 */           yp = yperiod - yp;
+/* 4023 */           yp = yp < 0 ? -yp : yp;
+/*      */         }
+/* 4025 */         yp *= this.nx;
+/* 4026 */         for (int i = 0; i < leni; i++) {
+/* 4027 */           int xp = xs + i;
+/* 4028 */           while (xp < 0)
+/* 4029 */             xp += xperiod;
+/* 4030 */           while (xp >= this.nx) {
+/* 4031 */             xp = xperiod - xp;
+/* 4032 */             xp = xp < 0 ? -xp : xp;
+/*      */           }
+/* 4034 */           buffer[i][j] = tmp[(xp + yp)];
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 4039 */       throw_get("XY", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodXZ(int x, int y, int z, byte[][] buffer, byte boundaryConditions)
+/*      */   {
+/* 4055 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 4056 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 4057 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 4060 */       int offset = x + y * this.nx;
+/* 4061 */       int leni = buffer.length;
+/* 4062 */       int lenj = buffer[0].length;
+/* 4063 */       int yp = y;
+/* 4064 */       while (yp < 0)
+/* 4065 */         yp += yperiod;
+/* 4066 */       while (yp >= this.ny) {
+/* 4067 */         yp = yperiod - yp;
+/* 4068 */         yp = yp < 0 ? -yp : yp;
+/*      */       }
+/* 4070 */       yp *= this.nx;
+/* 4071 */       int xs = x - leni / 2;
+/* 4072 */       int zs = z - lenj / 2;
+/* 4073 */       for (int j = 0; j < lenj; j++) {
+/* 4074 */         int zp = zs + j;
+/* 4075 */         while (zp < 0)
+/* 4076 */           zp += zperiod;
+/* 4077 */         while (zp >= this.nz) {
+/* 4078 */           zp = zperiod - yp;
+/* 4079 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 4081 */         for (int i = 0; i < leni; i++) {
+/* 4082 */           int xp = xs + i;
+/* 4083 */           while (xp < 0)
+/* 4084 */             xp += xperiod;
+/* 4085 */           while (xp >= this.nx) {
+/* 4086 */             xp = xperiod - xp;
+/* 4087 */             xp = xp < 0 ? -xp : xp;
+/*      */           }
+/* 4089 */           buffer[i][j] = ((byte)(int)((double[])(double[])this.data[zp])[(xp + yp)]);
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 4094 */       throw_get("XZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodXZ(int x, int y, int z, short[][] buffer, byte boundaryConditions)
+/*      */   {
+/* 4109 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 4110 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 4111 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 4114 */       int offset = x + y * this.nx;
+/* 4115 */       int leni = buffer.length;
+/* 4116 */       int lenj = buffer[0].length;
+/* 4117 */       int yp = y;
+/* 4118 */       while (yp < 0)
+/* 4119 */         yp += yperiod;
+/* 4120 */       while (yp >= this.ny) {
+/* 4121 */         yp = yperiod - yp;
+/* 4122 */         yp = yp < 0 ? -yp : yp;
+/*      */       }
+/* 4124 */       yp *= this.nx;
+/* 4125 */       int xs = x - leni / 2;
+/* 4126 */       int zs = z - lenj / 2;
+/* 4127 */       for (int j = 0; j < lenj; j++) {
+/* 4128 */         int zp = zs + j;
+/* 4129 */         while (zp < 0)
+/* 4130 */           zp += zperiod;
+/* 4131 */         while (zp >= this.nz) {
+/* 4132 */           zp = zperiod - yp;
+/* 4133 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 4135 */         for (int i = 0; i < leni; i++) {
+/* 4136 */           int xp = xs + i;
+/* 4137 */           while (xp < 0)
+/* 4138 */             xp += xperiod;
+/* 4139 */           while (xp >= this.nx) {
+/* 4140 */             xp = xperiod - xp;
+/* 4141 */             xp = xp < 0 ? -xp : xp;
+/*      */           }
+/* 4143 */           buffer[i][j] = ((short)(int)((double[])(double[])this.data[zp])[(xp + yp)]);
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 4148 */       throw_get("XZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodXZ(int x, int y, int z, float[][] buffer, byte boundaryConditions)
+/*      */   {
+/* 4163 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 4164 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 4165 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 4168 */       int offset = x + y * this.nx;
+/* 4169 */       int leni = buffer.length;
+/* 4170 */       int lenj = buffer[0].length;
+/* 4171 */       int yp = y;
+/* 4172 */       while (yp < 0)
+/* 4173 */         yp += yperiod;
+/* 4174 */       while (yp >= this.ny) {
+/* 4175 */         yp = yperiod - yp;
+/* 4176 */         yp = yp < 0 ? -yp : yp;
+/*      */       }
+/* 4178 */       yp *= this.nx;
+/* 4179 */       int xs = x - leni / 2;
+/* 4180 */       int zs = z - lenj / 2;
+/* 4181 */       for (int j = 0; j < lenj; j++) {
+/* 4182 */         int zp = zs + j;
+/* 4183 */         while (zp < 0)
+/* 4184 */           zp += zperiod;
+/* 4185 */         while (zp >= this.nz) {
+/* 4186 */           zp = zperiod - yp;
+/* 4187 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 4189 */         for (int i = 0; i < leni; i++) {
+/* 4190 */           int xp = xs + i;
+/* 4191 */           while (xp < 0)
+/* 4192 */             xp += xperiod;
+/* 4193 */           while (xp >= this.nx) {
+/* 4194 */             xp = xperiod - xp;
+/* 4195 */             xp = xp < 0 ? -xp : xp;
+/*      */           }
+/* 4197 */           buffer[i][j] = ((float)((double[])(double[])this.data[zp])[(xp + yp)]);
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 4202 */       throw_get("XZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodXZ(int x, int y, int z, double[][] buffer, byte boundaryConditions)
+/*      */   {
+/* 4217 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 4218 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 4219 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 4222 */       int offset = x + y * this.nx;
+/* 4223 */       int leni = buffer.length;
+/* 4224 */       int lenj = buffer[0].length;
+/* 4225 */       int yp = y;
+/* 4226 */       while (yp < 0)
+/* 4227 */         yp += yperiod;
+/* 4228 */       while (yp >= this.ny) {
+/* 4229 */         yp = yperiod - yp;
+/* 4230 */         yp = yp < 0 ? -yp : yp;
+/*      */       }
+/* 4232 */       yp *= this.nx;
+/* 4233 */       int xs = x - leni / 2;
+/* 4234 */       int zs = z - lenj / 2;
+/* 4235 */       for (int j = 0; j < lenj; j++) {
+/* 4236 */         int zp = zs + j;
+/* 4237 */         while (zp < 0)
+/* 4238 */           zp += zperiod;
+/* 4239 */         while (zp >= this.nz) {
+/* 4240 */           zp = zperiod - yp;
+/* 4241 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 4243 */         for (int i = 0; i < leni; i++) {
+/* 4244 */           int xp = xs + i;
+/* 4245 */           while (xp < 0)
+/* 4246 */             xp += xperiod;
+/* 4247 */           while (xp >= this.nx) {
+/* 4248 */             xp = xperiod - xp;
+/* 4249 */             xp = xp < 0 ? -xp : xp;
+/*      */           }
+/* 4251 */           buffer[i][j] = ((double[])(double[])this.data[zp])[(xp + yp)];
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 4256 */       throw_get("XZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodYZ(int x, int y, int z, byte[][] buffer, byte boundaryConditions)
+/*      */   {
+/* 4272 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 4273 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 4274 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 4277 */       int offset = x + y * this.nx;
+/* 4278 */       int leni = buffer.length;
+/* 4279 */       int lenj = buffer[0].length;
+/* 4280 */       int xp = x;
+/* 4281 */       while (xp < 0)
+/* 4282 */         xp += xperiod;
+/* 4283 */       while (xp >= this.nx) {
+/* 4284 */         xp = xperiod - xp;
+/* 4285 */         xp = xp < 0 ? -xp : xp;
+/*      */       }
+/* 4287 */       int ys = y - leni / 2;
+/* 4288 */       int zs = z - lenj / 2;
+/* 4289 */       for (int j = 0; j < lenj; j++) {
+/* 4290 */         int zp = zs + j;
+/* 4291 */         while (zp < 0)
+/* 4292 */           zp += zperiod;
+/* 4293 */         while (zp >= this.nz) {
+/* 4294 */           zp = zperiod - zp;
+/* 4295 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 4297 */         for (int i = 0; i < leni; i++) {
+/* 4298 */           int yp = ys + i;
+/* 4299 */           while (yp < 0)
+/* 4300 */             yp += yperiod;
+/* 4301 */           while (yp >= this.ny) {
+/* 4302 */             yp = yperiod - yp;
+/* 4303 */             yp = yp < 0 ? -yp : yp;
+/*      */           }
+/* 4305 */           buffer[i][j] = ((byte)(int)((double[])(double[])this.data[zp])[(xp + yp * this.nx)]);
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 4310 */       throw_get("YZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodYZ(int x, int y, int z, short[][] buffer, byte boundaryConditions)
+/*      */   {
+/* 4325 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 4326 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 4327 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 4330 */       int offset = x + y * this.nx;
+/* 4331 */       int leni = buffer.length;
+/* 4332 */       int lenj = buffer[0].length;
+/* 4333 */       int xp = x;
+/* 4334 */       while (xp < 0)
+/* 4335 */         xp += xperiod;
+/* 4336 */       while (xp >= this.nx) {
+/* 4337 */         xp = xperiod - xp;
+/* 4338 */         xp = xp < 0 ? -xp : xp;
+/*      */       }
+/* 4340 */       int ys = y - leni / 2;
+/* 4341 */       int zs = z - lenj / 2;
+/* 4342 */       for (int j = 0; j < lenj; j++) {
+/* 4343 */         int zp = zs + j;
+/* 4344 */         while (zp < 0)
+/* 4345 */           zp += zperiod;
+/* 4346 */         while (zp >= this.nz) {
+/* 4347 */           zp = zperiod - zp;
+/* 4348 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 4350 */         for (int i = 0; i < leni; i++) {
+/* 4351 */           int yp = ys + i;
+/* 4352 */           while (yp < 0)
+/* 4353 */             yp += yperiod;
+/* 4354 */           while (yp >= this.ny) {
+/* 4355 */             yp = yperiod - yp;
+/* 4356 */             yp = yp < 0 ? -yp : yp;
+/*      */           }
+/* 4358 */           buffer[i][j] = ((short)(int)((double[])(double[])this.data[zp])[(xp + yp * this.nx)]);
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 4363 */       throw_get("YZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodYZ(int x, int y, int z, float[][] buffer, byte boundaryConditions)
+/*      */   {
+/* 4378 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 4379 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 4380 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 4383 */       int offset = x + y * this.nx;
+/* 4384 */       int leni = buffer.length;
+/* 4385 */       int lenj = buffer[0].length;
+/* 4386 */       int xp = x;
+/* 4387 */       while (xp < 0)
+/* 4388 */         xp += xperiod;
+/* 4389 */       while (xp >= this.nx) {
+/* 4390 */         xp = xperiod - xp;
+/* 4391 */         xp = xp < 0 ? -xp : xp;
+/*      */       }
+/* 4393 */       int ys = y - leni / 2;
+/* 4394 */       int zs = z - lenj / 2;
+/* 4395 */       for (int j = 0; j < lenj; j++) {
+/* 4396 */         int zp = zs + j;
+/* 4397 */         while (zp < 0)
+/* 4398 */           zp += zperiod;
+/* 4399 */         while (zp >= this.nz) {
+/* 4400 */           zp = zperiod - zp;
+/* 4401 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 4403 */         for (int i = 0; i < leni; i++) {
+/* 4404 */           int yp = ys + i;
+/* 4405 */           while (yp < 0)
+/* 4406 */             yp += yperiod;
+/* 4407 */           while (yp >= this.ny) {
+/* 4408 */             yp = yperiod - yp;
+/* 4409 */             yp = yp < 0 ? -yp : yp;
+/*      */           }
+/* 4411 */           buffer[i][j] = ((float)((double[])(double[])this.data[zp])[(xp + yp * this.nx)]);
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 4416 */       throw_get("YZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodYZ(int x, int y, int z, double[][] buffer, byte boundaryConditions)
+/*      */   {
+/* 4431 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 4432 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 4433 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 4436 */       int offset = x + y * this.nx;
+/* 4437 */       int leni = buffer.length;
+/* 4438 */       int lenj = buffer[0].length;
+/* 4439 */       int xp = x;
+/* 4440 */       while (xp < 0)
+/* 4441 */         xp += xperiod;
+/* 4442 */       while (xp >= this.nx) {
+/* 4443 */         xp = xperiod - xp;
+/* 4444 */         xp = xp < 0 ? -xp : xp;
+/*      */       }
+/* 4446 */       int ys = y - leni / 2;
+/* 4447 */       int zs = z - lenj / 2;
+/* 4448 */       for (int j = 0; j < lenj; j++) {
+/* 4449 */         int zp = zs + j;
+/* 4450 */         while (zp < 0)
+/* 4451 */           zp += zperiod;
+/* 4452 */         while (zp >= this.nz) {
+/* 4453 */           zp = zperiod - zp;
+/* 4454 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 4456 */         for (int i = 0; i < leni; i++) {
+/* 4457 */           int yp = ys + i;
+/* 4458 */           while (yp < 0)
+/* 4459 */             yp += yperiod;
+/* 4460 */           while (yp >= this.ny) {
+/* 4461 */             yp = yperiod - yp;
+/* 4462 */             yp = yp < 0 ? -yp : yp;
+/*      */           }
+/* 4464 */           buffer[i][j] = ((double[])(double[])this.data[zp])[(xp + yp * this.nx)];
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 4469 */       throw_get("YZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodXYZ(int x, int y, int z, byte[][][] buffer, byte boundaryConditions)
+/*      */   {
+/* 4485 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 4486 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 4487 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 4490 */       int offset = x + y * this.nx;
+/* 4491 */       int leni = buffer.length;
+/* 4492 */       int lenj = buffer[0].length;
+/* 4493 */       int lenk = buffer[0][0].length;
+/* 4494 */       int xs = x - leni / 2;
+/* 4495 */       int ys = y - lenj / 2;
+/* 4496 */       int zs = z - lenk / 2;
+/* 4497 */       for (int k = 0; k < lenk; k++) {
+/* 4498 */         int zp = zs + k;
+/* 4499 */         while (zp < 0)
+/* 4500 */           zp += zperiod;
+/* 4501 */         while (zp >= this.nz) {
+/* 4502 */           zp = zperiod - zp;
+/* 4503 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 4505 */         double[] tmp = (double[])this.data[zp];
+/* 4506 */         for (int j = 0; j < lenj; j++) {
+/* 4507 */           int yp = ys + j;
+/* 4508 */           while (yp < 0)
+/* 4509 */             yp += yperiod;
+/* 4510 */           while (yp >= this.ny) {
+/* 4511 */             yp = yperiod - yp;
+/* 4512 */             yp = yp < 0 ? -yp : yp;
+/*      */           }
+/* 4514 */           yp *= this.nx;
+/* 4515 */           for (int i = 0; i < leni; i++) {
+/* 4516 */             int xp = xs + i;
+/* 4517 */             while (xp < 0)
+/* 4518 */               xp += xperiod;
+/* 4519 */             while (xp >= this.nx) {
+/* 4520 */               xp = xperiod - xp;
+/* 4521 */               xp = xp < 0 ? -xp : xp;
+/*      */             }
+/* 4523 */             buffer[i][j][k] = ((byte)(int)tmp[(xp + yp)]);
+/*      */           }
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 4529 */       throw_get("XYZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodXYZ(int x, int y, int z, short[][][] buffer, byte boundaryConditions)
+/*      */   {
+/* 4544 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 4545 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 4546 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 4549 */       int offset = x + y * this.nx;
+/* 4550 */       int leni = buffer.length;
+/* 4551 */       int lenj = buffer[0].length;
+/* 4552 */       int lenk = buffer[0][0].length;
+/* 4553 */       int xs = x - leni / 2;
+/* 4554 */       int ys = y - lenj / 2;
+/* 4555 */       int zs = z - lenk / 2;
+/* 4556 */       for (int k = 0; k < lenk; k++) {
+/* 4557 */         int zp = zs + k;
+/* 4558 */         while (zp < 0)
+/* 4559 */           zp += zperiod;
+/* 4560 */         while (zp >= this.nz) {
+/* 4561 */           zp = zperiod - zp;
+/* 4562 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 4564 */         double[] tmp = (double[])this.data[zp];
+/* 4565 */         for (int j = 0; j < lenj; j++) {
+/* 4566 */           int yp = ys + j;
+/* 4567 */           while (yp < 0)
+/* 4568 */             yp += yperiod;
+/* 4569 */           while (yp >= this.ny) {
+/* 4570 */             yp = yperiod - yp;
+/* 4571 */             yp = yp < 0 ? -yp : yp;
+/*      */           }
+/* 4573 */           yp *= this.nx;
+/* 4574 */           for (int i = 0; i < leni; i++) {
+/* 4575 */             int xp = xs + i;
+/* 4576 */             while (xp < 0)
+/* 4577 */               xp += xperiod;
+/* 4578 */             while (xp >= this.nx) {
+/* 4579 */               xp = xperiod - xp;
+/* 4580 */               xp = xp < 0 ? -xp : xp;
+/*      */             }
+/* 4582 */             buffer[i][j][k] = ((short)(int)tmp[(xp + yp)]);
+/*      */           }
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 4588 */       throw_get("XYZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodXYZ(int x, int y, int z, float[][][] buffer, byte boundaryConditions)
+/*      */   {
+/* 4603 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 4604 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 4605 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 4608 */       int offset = x + y * this.nx;
+/* 4609 */       int leni = buffer.length;
+/* 4610 */       int lenj = buffer[0].length;
+/* 4611 */       int lenk = buffer[0][0].length;
+/* 4612 */       int xs = x - leni / 2;
+/* 4613 */       int ys = y - lenj / 2;
+/* 4614 */       int zs = z - lenk / 2;
+/* 4615 */       for (int k = 0; k < lenk; k++) {
+/* 4616 */         int zp = zs + k;
+/* 4617 */         while (zp < 0)
+/* 4618 */           zp += zperiod;
+/* 4619 */         while (zp >= this.nz) {
+/* 4620 */           zp = zperiod - zp;
+/* 4621 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 4623 */         double[] tmp = (double[])this.data[zp];
+/* 4624 */         for (int j = 0; j < lenj; j++) {
+/* 4625 */           int yp = ys + j;
+/* 4626 */           while (yp < 0)
+/* 4627 */             yp += yperiod;
+/* 4628 */           while (yp >= this.ny) {
+/* 4629 */             yp = yperiod - yp;
+/* 4630 */             yp = yp < 0 ? -yp : yp;
+/*      */           }
+/* 4632 */           yp *= this.nx;
+/* 4633 */           for (int i = 0; i < leni; i++) {
+/* 4634 */             int xp = xs + i;
+/* 4635 */             while (xp < 0)
+/* 4636 */               xp += xperiod;
+/* 4637 */             while (xp >= this.nx) {
+/* 4638 */               xp = xperiod - xp;
+/* 4639 */               xp = xp < 0 ? -xp : xp;
+/*      */             }
+/* 4641 */             buffer[i][j][k] = ((float)tmp[(xp + yp)]);
+/*      */           }
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 4647 */       throw_get("XYZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getNeighborhoodXYZ(int x, int y, int z, double[][][] buffer, byte boundaryConditions)
+/*      */   {
+/* 4662 */     int xperiod = boundaryConditions == 2 ? 2 * this.nx - 2 : this.nx <= 1 ? 1 : this.nx;
+/* 4663 */     int yperiod = boundaryConditions == 2 ? 2 * this.ny - 2 : this.ny <= 1 ? 1 : this.ny;
+/* 4664 */     int zperiod = boundaryConditions == 2 ? 2 * this.nz - 2 : this.nz <= 1 ? 1 : this.nz;
+/*      */     try
+/*      */     {
+/* 4667 */       int offset = x + y * this.nx;
+/* 4668 */       int leni = buffer.length;
+/* 4669 */       int lenj = buffer[0].length;
+/* 4670 */       int lenk = buffer[0][0].length;
+/* 4671 */       int xs = x - leni / 2;
+/* 4672 */       int ys = y - lenj / 2;
+/* 4673 */       int zs = z - lenk / 2;
+/* 4674 */       for (int k = 0; k < lenk; k++) {
+/* 4675 */         int zp = zs + k;
+/* 4676 */         while (zp < 0)
+/* 4677 */           zp += zperiod;
+/* 4678 */         while (zp >= this.nz) {
+/* 4679 */           zp = zperiod - zp;
+/* 4680 */           zp = zp < 0 ? -zp : zp;
+/*      */         }
+/* 4682 */         double[] tmp = (double[])this.data[zp];
+/* 4683 */         for (int j = 0; j < lenj; j++) {
+/* 4684 */           int yp = ys + j;
+/* 4685 */           while (yp < 0)
+/* 4686 */             yp += yperiod;
+/* 4687 */           while (yp >= this.ny) {
+/* 4688 */             yp = yperiod - yp;
+/* 4689 */             yp = yp < 0 ? -yp : yp;
+/*      */           }
+/* 4691 */           yp *= this.nx;
+/* 4692 */           for (int i = 0; i < leni; i++) {
+/* 4693 */             int xp = xs + i;
+/* 4694 */             while (xp < 0)
+/* 4695 */               xp += xperiod;
+/* 4696 */             while (xp >= this.nx) {
+/* 4697 */               xp = xperiod - xp;
+/* 4698 */               xp = xp < 0 ? -xp : xp;
+/*      */             }
+/* 4700 */             buffer[i][j][k] = tmp[(xp + yp)];
+/*      */           }
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 4706 */       throw_get("XYZ", "Mirror or periodic boundaray conditions", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedX(int x, int y, int z, byte[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 4730 */       if (x >= this.nx) return;
+/* 4731 */       if (y >= this.ny) return;
+/* 4732 */       if (z >= this.nz) return;
+/* 4733 */       int iinf = x < 0 ? -x : 0;
+/* 4734 */       int offset = x + iinf + y * this.nx;
+/* 4735 */       int k = z;
+/* 4736 */       int leni = buffer.length;
+/* 4737 */       if (x + leni < 0) return;
+/* 4738 */       if (y < 0) return;
+/* 4739 */       if (z < 0) return;
+/* 4740 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/* 4741 */       double[] tmp = (double[])this.data[z];
+/* 4742 */       for (int i = iinf; i < isup; i++) {
+/* 4743 */         tmp[offset] = (buffer[i] & 0xFF);
+/* 4744 */         offset++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 4748 */       throw_put("X", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedX(int x, int y, int z, short[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 4763 */       if (x >= this.nx) return;
+/* 4764 */       if (y >= this.ny) return;
+/* 4765 */       if (z >= this.nz) return;
+/* 4766 */       int iinf = x < 0 ? -x : 0;
+/* 4767 */       int offset = x + iinf + y * this.nx;
+/* 4768 */       int k = z;
+/* 4769 */       int leni = buffer.length;
+/* 4770 */       if (x + leni < 0) return;
+/* 4771 */       if (y < 0) return;
+/* 4772 */       if (z < 0) return;
+/* 4773 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/* 4774 */       double[] tmp = (double[])this.data[z];
+/* 4775 */       for (int i = iinf; i < isup; i++) {
+/* 4776 */         tmp[offset] = (buffer[i] & 0xFFFF);
+/* 4777 */         offset++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 4781 */       throw_put("X", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedX(int x, int y, int z, float[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 4796 */       if (x >= this.nx) return;
+/* 4797 */       if (y >= this.ny) return;
+/* 4798 */       if (z >= this.nz) return;
+/* 4799 */       int iinf = x < 0 ? -x : 0;
+/* 4800 */       int offset = x + iinf + y * this.nx;
+/* 4801 */       int k = z;
+/* 4802 */       int leni = buffer.length;
+/* 4803 */       if (x + leni < 0) return;
+/* 4804 */       if (y < 0) return;
+/* 4805 */       if (z < 0) return;
+/* 4806 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/* 4807 */       double[] tmp = (double[])this.data[z];
+/* 4808 */       for (int i = iinf; i < isup; i++) {
+/* 4809 */         tmp[offset] = buffer[i];
+/* 4810 */         offset++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 4814 */       throw_put("X", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedX(int x, int y, int z, double[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 4829 */       if (x >= this.nx) return;
+/* 4830 */       if (y >= this.ny) return;
+/* 4831 */       if (z >= this.nz) return;
+/* 4832 */       int iinf = x < 0 ? -x : 0;
+/* 4833 */       int offset = x + iinf + y * this.nx;
+/* 4834 */       int k = z;
+/* 4835 */       int leni = buffer.length;
+/* 4836 */       if (x + leni < 0) return;
+/* 4837 */       if (y < 0) return;
+/* 4838 */       if (z < 0) return;
+/* 4839 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/* 4840 */       double[] tmp = (double[])this.data[z];
+/* 4841 */       for (int i = iinf; i < isup; i++) {
+/* 4842 */         tmp[offset] = buffer[i];
+/* 4843 */         offset++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 4847 */       throw_put("X", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedY(int x, int y, int z, byte[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 4863 */       if (x >= this.nx) return;
+/* 4864 */       if (y >= this.ny) return;
+/* 4865 */       if (z >= this.nz) return;
+/* 4866 */       int iinf = y < 0 ? -y : 0;
+/* 4867 */       int offset = x + (y + iinf) * this.nx;
+/* 4868 */       int k = z;
+/* 4869 */       int leni = buffer.length;
+/* 4870 */       if (x < 0) return;
+/* 4871 */       if (y + leni < 0) return;
+/* 4872 */       if (z < 0) return;
+/* 4873 */       int isup = y + leni >= this.ny ? this.ny - y : leni;
+/* 4874 */       double[] tmp = (double[])this.data[z];
+/* 4875 */       for (int i = iinf; i < isup; i++) {
+/* 4876 */         tmp[offset] = (buffer[i] & 0xFF);
+/* 4877 */         offset += this.nx;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 4881 */       throw_put("Y", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedY(int x, int y, int z, short[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 4896 */       if (x >= this.nx) return;
+/* 4897 */       if (y >= this.ny) return;
+/* 4898 */       if (z >= this.nz) return;
+/* 4899 */       int iinf = y < 0 ? -y : 0;
+/* 4900 */       int offset = x + (y + iinf) * this.nx;
+/* 4901 */       int k = z;
+/* 4902 */       int leni = buffer.length;
+/* 4903 */       if (x < 0) return;
+/* 4904 */       if (y + leni < 0) return;
+/* 4905 */       if (z < 0) return;
+/* 4906 */       int isup = y + leni >= this.ny ? this.ny - y : leni;
+/* 4907 */       double[] tmp = (double[])this.data[z];
+/* 4908 */       for (int i = iinf; i < isup; i++) {
+/* 4909 */         tmp[offset] = (buffer[i] & 0xFFFF);
+/* 4910 */         offset += this.nx;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 4914 */       throw_put("Y", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedY(int x, int y, int z, float[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 4929 */       if (x >= this.nx) return;
+/* 4930 */       if (y >= this.ny) return;
+/* 4931 */       if (z >= this.nz) return;
+/* 4932 */       int iinf = y < 0 ? -y : 0;
+/* 4933 */       int offset = x + (y + iinf) * this.nx;
+/* 4934 */       int k = z;
+/* 4935 */       int leni = buffer.length;
+/* 4936 */       if (x < 0) return;
+/* 4937 */       if (y + leni < 0) return;
+/* 4938 */       if (z < 0) return;
+/* 4939 */       int isup = y + leni >= this.ny ? this.ny - y : leni;
+/* 4940 */       double[] tmp = (double[])this.data[z];
+/* 4941 */       for (int i = iinf; i < isup; i++) {
+/* 4942 */         tmp[offset] = buffer[i];
+/* 4943 */         offset += this.nx;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 4947 */       throw_put("Y", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedY(int x, int y, int z, double[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 4962 */       if (x >= this.nx) return;
+/* 4963 */       if (y >= this.ny) return;
+/* 4964 */       if (z >= this.nz) return;
+/* 4965 */       int iinf = y < 0 ? -y : 0;
+/* 4966 */       int offset = x + (y + iinf) * this.nx;
+/* 4967 */       int k = z;
+/* 4968 */       int leni = buffer.length;
+/* 4969 */       if (x < 0) return;
+/* 4970 */       if (y + leni < 0) return;
+/* 4971 */       if (z < 0) return;
+/* 4972 */       int isup = y + leni >= this.ny ? this.ny - y : leni;
+/* 4973 */       double[] tmp = (double[])this.data[z];
+/* 4974 */       for (int i = iinf; i < isup; i++) {
+/* 4975 */         tmp[offset] = buffer[i];
+/* 4976 */         offset += this.nx;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 4980 */       throw_put("Y", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedZ(int x, int y, int z, byte[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 4996 */       if (x >= this.nx) return;
+/* 4997 */       if (y >= this.ny) return;
+/* 4998 */       if (z >= this.nz) return;
+/* 4999 */       int iinf = z < 0 ? -z : 0;
+/* 5000 */       int k = z + iinf;
+/* 5001 */       int offset = x + y * this.nx;
+/* 5002 */       int leni = buffer.length;
+/* 5003 */       if (x < 0) return;
+/* 5004 */       if (y < 0) return;
+/* 5005 */       if (z + leni < 0) return;
+/* 5006 */       int isup = z + leni >= this.nz ? this.nz - z : leni;
+/* 5007 */       for (int i = iinf; i < isup; i++) {
+/* 5008 */         ((double[])this.data[k])[offset] = (buffer[i] & 0xFF);
+/* 5009 */         k++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 5013 */       throw_put("Z", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedZ(int x, int y, int z, short[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 5028 */       if (x >= this.nx) return;
+/* 5029 */       if (y >= this.ny) return;
+/* 5030 */       if (z >= this.nz) return;
+/* 5031 */       int iinf = z < 0 ? -z : 0;
+/* 5032 */       int k = z + iinf;
+/* 5033 */       int offset = x + y * this.nx;
+/* 5034 */       int leni = buffer.length;
+/* 5035 */       if (x < 0) return;
+/* 5036 */       if (y < 0) return;
+/* 5037 */       if (z + leni < 0) return;
+/* 5038 */       int isup = z + leni >= this.nz ? this.nz - z : leni;
+/* 5039 */       for (int i = iinf; i < isup; i++) {
+/* 5040 */         ((double[])this.data[k])[offset] = (buffer[i] & 0xFFFF);
+/* 5041 */         k++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 5045 */       throw_put("Z", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedZ(int x, int y, int z, float[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 5060 */       if (x >= this.nx) return;
+/* 5061 */       if (y >= this.ny) return;
+/* 5062 */       if (z >= this.nz) return;
+/* 5063 */       int iinf = z < 0 ? -z : 0;
+/* 5064 */       int k = z + iinf;
+/* 5065 */       int offset = x + y * this.nx;
+/* 5066 */       int leni = buffer.length;
+/* 5067 */       if (x < 0) return;
+/* 5068 */       if (y < 0) return;
+/* 5069 */       if (z + leni < 0) return;
+/* 5070 */       int isup = z + leni >= this.nz ? this.nz - z : leni;
+/* 5071 */       for (int i = iinf; i < isup; i++) {
+/* 5072 */         ((double[])this.data[k])[offset] = buffer[i];
+/* 5073 */         k++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 5077 */       throw_put("Z", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedZ(int x, int y, int z, double[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 5092 */       if (x >= this.nx) return;
+/* 5093 */       if (y >= this.ny) return;
+/* 5094 */       if (z >= this.nz) return;
+/* 5095 */       int iinf = z < 0 ? -z : 0;
+/* 5096 */       int k = z + iinf;
+/* 5097 */       int offset = x + y * this.nx;
+/* 5098 */       int leni = buffer.length;
+/* 5099 */       if (x < 0) return;
+/* 5100 */       if (y < 0) return;
+/* 5101 */       if (z + leni < 0) return;
+/* 5102 */       int isup = z + leni >= this.nz ? this.nz - z : leni;
+/* 5103 */       for (int i = iinf; i < isup; i++) {
+/* 5104 */         ((double[])this.data[k])[offset] = buffer[i];
+/* 5105 */         k++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 5109 */       throw_put("Z", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedXY(int x, int y, int z, byte[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 5125 */       if (x >= this.nx) return;
+/* 5126 */       if (y >= this.ny) return;
+/* 5127 */       if (z >= this.nz) return;
+/* 5128 */       int iinf = x < 0 ? -x : 0;
+/* 5129 */       int jinf = y < 0 ? -y : 0;
+/* 5130 */       int offset = 0;
+/* 5131 */       int k = z;
+/* 5132 */       int leni = buffer.length;
+/* 5133 */       int lenj = buffer[0].length;
+/* 5134 */       if (x + leni < 0) return;
+/* 5135 */       if (y + lenj < 0) return;
+/* 5136 */       if (z < 0) return;
+/* 5137 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/* 5138 */       int jsup = y + lenj >= this.ny ? this.ny - y : lenj;
+/* 5139 */       double[] tmp = (double[])this.data[z];
+/* 5140 */       for (int j = jinf; j < jsup; j++) {
+/* 5141 */         offset = x + iinf + (y + j) * this.nx;
+/* 5142 */         for (int i = iinf; i < isup; i++) {
+/* 5143 */           tmp[offset] = (buffer[i][j] & 0xFF);
+/* 5144 */           offset++;
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 5149 */       throw_put("XY", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedXY(int x, int y, int z, short[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 5164 */       if (x >= this.nx) return;
+/* 5165 */       if (y >= this.ny) return;
+/* 5166 */       if (z >= this.nz) return;
+/* 5167 */       int iinf = x < 0 ? -x : 0;
+/* 5168 */       int jinf = y < 0 ? -y : 0;
+/* 5169 */       int offset = 0;
+/* 5170 */       int k = z;
+/* 5171 */       int leni = buffer.length;
+/* 5172 */       int lenj = buffer[0].length;
+/* 5173 */       if (x + leni < 0) return;
+/* 5174 */       if (y + lenj < 0) return;
+/* 5175 */       if (z < 0) return;
+/* 5176 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/* 5177 */       int jsup = y + lenj >= this.ny ? this.ny - y : lenj;
+/* 5178 */       double[] tmp = (double[])this.data[z];
+/* 5179 */       for (int j = jinf; j < jsup; j++) {
+/* 5180 */         offset = x + iinf + (y + j) * this.nx;
+/* 5181 */         for (int i = iinf; i < isup; i++) {
+/* 5182 */           tmp[offset] = (buffer[i][j] & 0xFFFF);
+/* 5183 */           offset++;
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 5188 */       throw_put("XY", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedXY(int x, int y, int z, float[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 5203 */       if (x >= this.nx) return;
+/* 5204 */       if (y >= this.ny) return;
+/* 5205 */       if (z >= this.nz) return;
+/* 5206 */       int iinf = x < 0 ? -x : 0;
+/* 5207 */       int jinf = y < 0 ? -y : 0;
+/* 5208 */       int offset = 0;
+/* 5209 */       int k = z;
+/* 5210 */       int leni = buffer.length;
+/* 5211 */       int lenj = buffer[0].length;
+/* 5212 */       if (x + leni < 0) return;
+/* 5213 */       if (y + lenj < 0) return;
+/* 5214 */       if (z < 0) return;
+/* 5215 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/* 5216 */       int jsup = y + lenj >= this.ny ? this.ny - y : lenj;
+/* 5217 */       double[] tmp = (double[])this.data[z];
+/* 5218 */       for (int j = jinf; j < jsup; j++) {
+/* 5219 */         offset = x + iinf + (y + j) * this.nx;
+/* 5220 */         for (int i = iinf; i < isup; i++) {
+/* 5221 */           tmp[offset] = buffer[i][j];
+/* 5222 */           offset++;
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 5227 */       throw_put("XY", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedXY(int x, int y, int z, double[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 5242 */       if (x >= this.nx) return;
+/* 5243 */       if (y >= this.ny) return;
+/* 5244 */       if (z >= this.nz) return;
+/* 5245 */       int iinf = x < 0 ? -x : 0;
+/* 5246 */       int jinf = y < 0 ? -y : 0;
+/* 5247 */       int offset = 0;
+/* 5248 */       int k = z;
+/* 5249 */       int leni = buffer.length;
+/* 5250 */       int lenj = buffer[0].length;
+/* 5251 */       if (x + leni < 0) return;
+/* 5252 */       if (y + lenj < 0) return;
+/* 5253 */       if (z < 0) return;
+/* 5254 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/* 5255 */       int jsup = y + lenj >= this.ny ? this.ny - y : lenj;
+/* 5256 */       double[] tmp = (double[])this.data[z];
+/* 5257 */       for (int j = jinf; j < jsup; j++) {
+/* 5258 */         offset = x + iinf + (y + j) * this.nx;
+/* 5259 */         for (int i = iinf; i < isup; i++) {
+/* 5260 */           tmp[offset] = buffer[i][j];
+/* 5261 */           offset++;
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 5266 */       throw_put("XY", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedXZ(int x, int y, int z, byte[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 5282 */       if (x >= this.nx) return;
+/* 5283 */       if (y >= this.ny) return;
+/* 5284 */       if (z >= this.nz) return;
+/* 5285 */       int iinf = x < 0 ? -x : 0;
+/* 5286 */       int jinf = z < 0 ? -z : 0;
+/* 5287 */       int k = z + jinf;
+/* 5288 */       int offset = 0;
+/* 5289 */       int leni = buffer.length;
+/* 5290 */       int lenj = buffer[0].length;
+/* 5291 */       if (x + leni < 0) return;
+/* 5292 */       if (y < 0) return;
+/* 5293 */       if (z + lenj < 0) return;
+/* 5294 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/* 5295 */       int jsup = z + lenj >= this.nz ? this.nz - z : lenj;
+/* 5296 */       for (int j = jinf; j < jsup; j++) {
+/* 5297 */         offset = x + iinf + y * this.nx;
+/* 5298 */         for (int i = iinf; i < isup; i++) {
+/* 5299 */           ((double[])this.data[k])[offset] = (buffer[i][j] & 0xFF);
+/* 5300 */           offset++;
+/*      */         }
+/* 5302 */         k++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 5306 */       throw_put("YZ", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedXZ(int x, int y, int z, short[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 5321 */       if (x >= this.nx) return;
+/* 5322 */       if (y >= this.ny) return;
+/* 5323 */       if (z >= this.nz) return;
+/* 5324 */       int iinf = x < 0 ? -x : 0;
+/* 5325 */       int jinf = z < 0 ? -z : 0;
+/* 5326 */       int k = z + jinf;
+/* 5327 */       int offset = 0;
+/* 5328 */       int leni = buffer.length;
+/* 5329 */       int lenj = buffer[0].length;
+/* 5330 */       if (x + leni < 0) return;
+/* 5331 */       if (y < 0) return;
+/* 5332 */       if (z + lenj < 0) return;
+/* 5333 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/* 5334 */       int jsup = z + lenj >= this.nz ? this.nz - z : lenj;
+/* 5335 */       for (int j = jinf; j < jsup; j++) {
+/* 5336 */         offset = x + iinf + y * this.nx;
+/* 5337 */         for (int i = iinf; i < isup; i++) {
+/* 5338 */           ((double[])this.data[k])[offset] = (buffer[i][j] & 0xFFFF);
+/* 5339 */           offset++;
+/*      */         }
+/* 5341 */         k++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 5345 */       throw_put("YZ", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedXZ(int x, int y, int z, float[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 5360 */       if (x >= this.nx) return;
+/* 5361 */       if (y >= this.ny) return;
+/* 5362 */       if (z >= this.nz) return;
+/* 5363 */       int iinf = x < 0 ? -x : 0;
+/* 5364 */       int jinf = z < 0 ? -z : 0;
+/* 5365 */       int k = z + jinf;
+/* 5366 */       int offset = 0;
+/* 5367 */       int leni = buffer.length;
+/* 5368 */       int lenj = buffer[0].length;
+/* 5369 */       if (x + leni < 0) return;
+/* 5370 */       if (y < 0) return;
+/* 5371 */       if (z + lenj < 0) return;
+/* 5372 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/* 5373 */       int jsup = z + lenj >= this.nz ? this.nz - z : lenj;
+/* 5374 */       for (int j = jinf; j < jsup; j++) {
+/* 5375 */         offset = x + iinf + y * this.nx;
+/* 5376 */         for (int i = iinf; i < isup; i++) {
+/* 5377 */           ((double[])this.data[k])[offset] = buffer[i][j];
+/* 5378 */           offset++;
+/*      */         }
+/* 5380 */         k++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 5384 */       throw_put("YZ", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedXZ(int x, int y, int z, double[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 5399 */       if (x >= this.nx) return;
+/* 5400 */       if (y >= this.ny) return;
+/* 5401 */       if (z >= this.nz) return;
+/* 5402 */       int iinf = x < 0 ? -x : 0;
+/* 5403 */       int jinf = z < 0 ? -z : 0;
+/* 5404 */       int k = z + jinf;
+/* 5405 */       int offset = 0;
+/* 5406 */       int leni = buffer.length;
+/* 5407 */       int lenj = buffer[0].length;
+/* 5408 */       if (x + leni < 0) return;
+/* 5409 */       if (y < 0) return;
+/* 5410 */       if (z + lenj < 0) return;
+/* 5411 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/* 5412 */       int jsup = z + lenj >= this.nz ? this.nz - z : lenj;
+/* 5413 */       for (int j = jinf; j < jsup; j++) {
+/* 5414 */         offset = x + iinf + y * this.nx;
+/* 5415 */         for (int i = iinf; i < isup; i++) {
+/* 5416 */           ((double[])this.data[k])[offset] = buffer[i][j];
+/* 5417 */           offset++;
+/*      */         }
+/* 5419 */         k++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 5423 */       throw_put("YZ", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedYZ(int x, int y, int z, byte[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 5439 */       if (x >= this.nx) return;
+/* 5440 */       if (y >= this.ny) return;
+/* 5441 */       if (z >= this.nz) return;
+/* 5442 */       int iinf = y < 0 ? -y : 0;
+/* 5443 */       int jinf = z < 0 ? -z : 0;
+/* 5444 */       int k = z + jinf;
+/* 5445 */       int offset = 0;
+/* 5446 */       int leni = buffer.length;
+/* 5447 */       int lenj = buffer[0].length;
+/* 5448 */       if (x < 0) return;
+/* 5449 */       if (y + leni < 0) return;
+/* 5450 */       if (z + lenj < 0) return;
+/* 5451 */       int isup = y + leni >= this.ny ? this.ny - y : leni;
+/* 5452 */       int jsup = z + lenj >= this.nz ? this.nz - z : lenj;
+/* 5453 */       for (int j = jinf; j < jsup; j++) {
+/* 5454 */         offset = x + (y + iinf) * this.nx;
+/* 5455 */         for (int i = iinf; i < isup; i++) {
+/* 5456 */           ((double[])this.data[k])[offset] = (buffer[i][j] & 0xFF);
+/* 5457 */           offset += this.nx;
+/*      */         }
+/* 5459 */         k++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 5463 */       throw_put("XZ", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedYZ(int x, int y, int z, short[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 5478 */       if (x >= this.nx) return;
+/* 5479 */       if (y >= this.ny) return;
+/* 5480 */       if (z >= this.nz) return;
+/* 5481 */       int iinf = y < 0 ? -y : 0;
+/* 5482 */       int jinf = z < 0 ? -z : 0;
+/* 5483 */       int k = z + jinf;
+/* 5484 */       int offset = 0;
+/* 5485 */       int leni = buffer.length;
+/* 5486 */       int lenj = buffer[0].length;
+/* 5487 */       if (x < 0) return;
+/* 5488 */       if (y + leni < 0) return;
+/* 5489 */       if (z + lenj < 0) return;
+/* 5490 */       int isup = y + leni >= this.ny ? this.ny - y : leni;
+/* 5491 */       int jsup = z + lenj >= this.nz ? this.nz - z : lenj;
+/* 5492 */       for (int j = jinf; j < jsup; j++) {
+/* 5493 */         offset = x + (y + iinf) * this.nx;
+/* 5494 */         for (int i = iinf; i < isup; i++) {
+/* 5495 */           ((double[])this.data[k])[offset] = (buffer[i][j] & 0xFFFF);
+/* 5496 */           offset += this.nx;
+/*      */         }
+/* 5498 */         k++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 5502 */       throw_put("XZ", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedYZ(int x, int y, int z, float[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 5517 */       if (x >= this.nx) return;
+/* 5518 */       if (y >= this.ny) return;
+/* 5519 */       if (z >= this.nz) return;
+/* 5520 */       int iinf = y < 0 ? -y : 0;
+/* 5521 */       int jinf = z < 0 ? -z : 0;
+/* 5522 */       int k = z + jinf;
+/* 5523 */       int offset = 0;
+/* 5524 */       int leni = buffer.length;
+/* 5525 */       int lenj = buffer[0].length;
+/* 5526 */       if (x < 0) return;
+/* 5527 */       if (y + leni < 0) return;
+/* 5528 */       if (z + lenj < 0) return;
+/* 5529 */       int isup = y + leni >= this.ny ? this.ny - y : leni;
+/* 5530 */       int jsup = z + lenj >= this.nz ? this.nz - z : lenj;
+/* 5531 */       for (int j = jinf; j < jsup; j++) {
+/* 5532 */         offset = x + (y + iinf) * this.nx;
+/* 5533 */         for (int i = iinf; i < isup; i++) {
+/* 5534 */           ((double[])this.data[k])[offset] = buffer[i][j];
+/* 5535 */           offset += this.nx;
+/*      */         }
+/* 5537 */         k++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 5541 */       throw_put("XZ", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedYZ(int x, int y, int z, double[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 5556 */       if (x >= this.nx) return;
+/* 5557 */       if (y >= this.ny) return;
+/* 5558 */       if (z >= this.nz) return;
+/* 5559 */       int iinf = y < 0 ? -y : 0;
+/* 5560 */       int jinf = z < 0 ? -z : 0;
+/* 5561 */       int k = z + jinf;
+/* 5562 */       int offset = 0;
+/* 5563 */       int leni = buffer.length;
+/* 5564 */       int lenj = buffer[0].length;
+/* 5565 */       if (x < 0) return;
+/* 5566 */       if (y + leni < 0) return;
+/* 5567 */       if (z + lenj < 0) return;
+/* 5568 */       int isup = y + leni >= this.ny ? this.ny - y : leni;
+/* 5569 */       int jsup = z + lenj >= this.nz ? this.nz - z : lenj;
+/* 5570 */       for (int j = jinf; j < jsup; j++) {
+/* 5571 */         offset = x + (y + iinf) * this.nx;
+/* 5572 */         for (int i = iinf; i < isup; i++) {
+/* 5573 */           ((double[])this.data[k])[offset] = buffer[i][j];
+/* 5574 */           offset += this.nx;
+/*      */         }
+/* 5576 */         k++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 5580 */       throw_put("XZ", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedXYZ(int x, int y, int z, byte[][][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 5596 */       if (x >= this.nx) return;
+/* 5597 */       if (y >= this.ny) return;
+/* 5598 */       if (z >= this.nz) return;
+/* 5599 */       int iinf = x < 0 ? -x : 0;
+/* 5600 */       int jinf = y < 0 ? -y : 0;
+/* 5601 */       int kinf = z < 0 ? -z : 0;
+/* 5602 */       int ko = z + kinf;
+/* 5603 */       int offset = 0;
+/* 5604 */       int leni = buffer.length;
+/* 5605 */       int lenj = buffer[0].length;
+/* 5606 */       int lenk = buffer[0][0].length;
+/* 5607 */       if (x + leni < 0) return;
+/* 5608 */       if (y + lenj < 0) return;
+/* 5609 */       if (z + lenk < 0) return;
+/* 5610 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/* 5611 */       int jsup = y + lenj >= this.ny ? this.ny - y : lenj;
+/* 5612 */       int ksup = z + lenk >= this.nz ? this.nz - z : lenk;
+/* 5613 */       for (int k = kinf; k < ksup; k++) {
+/* 5614 */         double[] tmp = (double[])this.data[ko];
+/* 5615 */         for (int j = jinf; j < jsup; j++) {
+/* 5616 */           offset = x + iinf + (y + j) * this.nx;
+/* 5617 */           for (int i = iinf; i < isup; i++) {
+/* 5618 */             tmp[offset] = (buffer[i][j][k] & 0xFF);
+/* 5619 */             offset++;
+/*      */           }
+/*      */         }
+/* 5622 */         ko++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 5626 */       throw_put("XYZ", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedXYZ(int x, int y, int z, short[][][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 5641 */       if (x >= this.nx) return;
+/* 5642 */       if (y >= this.ny) return;
+/* 5643 */       if (z >= this.nz) return;
+/* 5644 */       int iinf = x < 0 ? -x : 0;
+/* 5645 */       int jinf = y < 0 ? -y : 0;
+/* 5646 */       int kinf = z < 0 ? -z : 0;
+/* 5647 */       int ko = z + kinf;
+/* 5648 */       int offset = 0;
+/* 5649 */       int leni = buffer.length;
+/* 5650 */       int lenj = buffer[0].length;
+/* 5651 */       int lenk = buffer[0][0].length;
+/* 5652 */       if (x + leni < 0) return;
+/* 5653 */       if (y + lenj < 0) return;
+/* 5654 */       if (z + lenk < 0) return;
+/* 5655 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/* 5656 */       int jsup = y + lenj >= this.ny ? this.ny - y : lenj;
+/* 5657 */       int ksup = z + lenk >= this.nz ? this.nz - z : lenk;
+/* 5658 */       for (int k = kinf; k < ksup; k++) {
+/* 5659 */         double[] tmp = (double[])this.data[ko];
+/* 5660 */         for (int j = jinf; j < jsup; j++) {
+/* 5661 */           offset = x + iinf + (y + j) * this.nx;
+/* 5662 */           for (int i = iinf; i < isup; i++) {
+/* 5663 */             tmp[offset] = (buffer[i][j][k] & 0xFFFF);
+/* 5664 */             offset++;
+/*      */           }
+/*      */         }
+/* 5667 */         ko++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 5671 */       throw_put("XYZ", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedXYZ(int x, int y, int z, float[][][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 5686 */       if (x >= this.nx) return;
+/* 5687 */       if (y >= this.ny) return;
+/* 5688 */       if (z >= this.nz) return;
+/* 5689 */       int iinf = x < 0 ? -x : 0;
+/* 5690 */       int jinf = y < 0 ? -y : 0;
+/* 5691 */       int kinf = z < 0 ? -z : 0;
+/* 5692 */       int ko = z + kinf;
+/* 5693 */       int offset = 0;
+/* 5694 */       int leni = buffer.length;
+/* 5695 */       int lenj = buffer[0].length;
+/* 5696 */       int lenk = buffer[0][0].length;
+/* 5697 */       if (x + leni < 0) return;
+/* 5698 */       if (y + lenj < 0) return;
+/* 5699 */       if (z + lenk < 0) return;
+/* 5700 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/* 5701 */       int jsup = y + lenj >= this.ny ? this.ny - y : lenj;
+/* 5702 */       int ksup = z + lenk >= this.nz ? this.nz - z : lenk;
+/* 5703 */       for (int k = kinf; k < ksup; k++) {
+/* 5704 */         double[] tmp = (double[])this.data[ko];
+/* 5705 */         for (int j = jinf; j < jsup; j++) {
+/* 5706 */           offset = x + iinf + (y + j) * this.nx;
+/* 5707 */           for (int i = iinf; i < isup; i++) {
+/* 5708 */             tmp[offset] = buffer[i][j][k];
+/* 5709 */             offset++;
+/*      */           }
+/*      */         }
+/* 5712 */         ko++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 5716 */       throw_put("XYZ", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putBoundedXYZ(int x, int y, int z, double[][][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 5731 */       if (x >= this.nx) return;
+/* 5732 */       if (y >= this.ny) return;
+/* 5733 */       if (z >= this.nz) return;
+/* 5734 */       int iinf = x < 0 ? -x : 0;
+/* 5735 */       int jinf = y < 0 ? -y : 0;
+/* 5736 */       int kinf = z < 0 ? -z : 0;
+/* 5737 */       int ko = z + kinf;
+/* 5738 */       int offset = 0;
+/* 5739 */       int leni = buffer.length;
+/* 5740 */       int lenj = buffer[0].length;
+/* 5741 */       int lenk = buffer[0][0].length;
+/* 5742 */       if (x + leni < 0) return;
+/* 5743 */       if (y + lenj < 0) return;
+/* 5744 */       if (z + lenk < 0) return;
+/* 5745 */       int isup = x + leni >= this.nx ? this.nx - x : leni;
+/* 5746 */       int jsup = y + lenj >= this.ny ? this.ny - y : lenj;
+/* 5747 */       int ksup = z + lenk >= this.nz ? this.nz - z : lenk;
+/* 5748 */       for (int k = kinf; k < ksup; k++) {
+/* 5749 */         double[] tmp = (double[])this.data[ko];
+/* 5750 */         for (int j = jinf; j < jsup; j++) {
+/* 5751 */           offset = x + iinf + (y + j) * this.nx;
+/* 5752 */           for (int i = iinf; i < isup; i++) {
+/* 5753 */             tmp[offset] = buffer[i][j][k];
+/* 5754 */             offset++;
+/*      */           }
+/*      */         }
+/* 5757 */         ko++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 5761 */       throw_put("XYZ", "Bounded check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ }
+
+/* Location:           C:\Users\BHUSHANNK\Downloads\Watershed_\
+ * Qualified Name:     imageware.DoubleAccess
+ * JD-Core Version:    0.6.2
+ */

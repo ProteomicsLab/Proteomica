@@ -1,0 +1,457 @@
+/*     */ package imageware;
+/*     */ 
+/*     */ import ij.ImageStack;
+/*     */ import ij.process.FloatProcessor;
+/*     */ import java.awt.Image;
+/*     */ import java.util.Random;
+/*     */ 
+/*     */ public class FloatPointwise extends FloatAccess
+/*     */   implements Pointwise
+/*     */ {
+/*     */   protected FloatPointwise(int nx, int ny, int nz)
+/*     */   {
+/*  26 */     super(nx, ny, nz); } 
+/*  27 */   protected FloatPointwise(Image image, int mode) { super(image, mode); } 
+/*     */   protected FloatPointwise(ImageStack stack, int mode) {
+/*  29 */     super(stack, mode); } 
+/*  30 */   protected FloatPointwise(ImageStack stack, byte chan) { super(stack, chan); } 
+/*     */   protected FloatPointwise(byte[] array, int mode) {
+/*  32 */     super(array, mode); } 
+/*  33 */   protected FloatPointwise(byte[][] array, int mode) { super(array, mode); } 
+/*  34 */   protected FloatPointwise(byte[][][] array, int mode) { super(array, mode); } 
+/*  35 */   protected FloatPointwise(short[] array, int mode) { super(array, mode); } 
+/*  36 */   protected FloatPointwise(short[][] array, int mode) { super(array, mode); } 
+/*  37 */   protected FloatPointwise(short[][][] array, int mode) { super(array, mode); } 
+/*  38 */   protected FloatPointwise(float[] array, int mode) { super(array, mode); } 
+/*  39 */   protected FloatPointwise(float[][] array, int mode) { super(array, mode); } 
+/*  40 */   protected FloatPointwise(float[][][] array, int mode) { super(array, mode); } 
+/*  41 */   protected FloatPointwise(double[] array, int mode) { super(array, mode); } 
+/*  42 */   protected FloatPointwise(double[][] array, int mode) { super(array, mode); } 
+/*  43 */   protected FloatPointwise(double[][][] array, int mode) { super(array, mode); }
+/*     */ 
+/*     */ 
+/*     */   public void fillConstant(double value)
+/*     */   {
+/*  51 */     float typedValue = (float)value;
+/*  52 */     float[] slice = null;
+/*  53 */     for (int z = 0; z < this.nz; z++) {
+/*  54 */       slice = (float[])this.data[z];
+/*  55 */       for (int k = 0; k < this.nxy; k++)
+/*  56 */         slice[k] = typedValue;
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void fillRamp()
+/*     */   {
+/*  64 */     int off = 0;
+/*  65 */     float[] slice = null;
+/*  66 */     for (int z = 0; z < this.nz; z++) {
+/*  67 */       slice = (float[])this.data[z];
+/*  68 */       for (int k = 0; k < this.nxy; k++)
+/*  69 */         slice[k] = (off + k);
+/*  70 */       off += this.nxy;
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void fillGaussianNoise(double amplitude)
+/*     */   {
+/*  79 */     Random rnd = new Random();
+/*  80 */     float[] slice = null;
+/*  81 */     for (int z = 0; z < this.nz; z++) {
+/*  82 */       slice = (float[])this.data[z];
+/*  83 */       for (int k = 0; k < this.nxy; k++)
+/*  84 */         slice[k] = ((float)(rnd.nextGaussian() * amplitude));
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void fillUniformNoise(double amplitude)
+/*     */   {
+/*  95 */     Random rnd = new Random();
+/*  96 */     float[] slice = null;
+/*  97 */     amplitude *= 2.0D;
+/*  98 */     for (int z = 0; z < this.nz; z++) {
+/*  99 */       slice = (float[])this.data[z];
+/* 100 */       for (int k = 0; k < this.nxy; k++)
+/* 101 */         slice[k] = ((float)((rnd.nextDouble() - 0.5D) * amplitude));
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void fillSaltPepper(double amplitudeSalt, double amplitudePepper, double percentageSalt, double percentagePepper)
+/*     */   {
+/* 115 */     Random rnd = new Random();
+/* 116 */     float[] slice = null;
+/*     */ 
+/* 118 */     if (percentageSalt > 0.0D) {
+/* 119 */       double nbSalt = this.nxy * this.nz / percentageSalt;
+/* 120 */       for (int k = 0; k < nbSalt; k++) {
+/* 121 */         int index = (int)(rnd.nextDouble() * this.nxy);
+/* 122 */         int z = (int)(rnd.nextDouble() * this.nz);
+/* 123 */         ((float[])this.data[z])[index] = ((float)(rnd.nextDouble() * amplitudeSalt));
+/*     */       }
+/*     */     }
+/* 126 */     if (percentagePepper > 0.0D) {
+/* 127 */       double nbPepper = this.nxy * this.nz / percentagePepper;
+/* 128 */       for (int k = 0; k < nbPepper; k++) {
+/* 129 */         int index = (int)(rnd.nextDouble() * this.nxy);
+/* 130 */         int z = (int)(rnd.nextDouble() * this.nz);
+/* 131 */         ((float[])this.data[z])[index] = ((float)(-rnd.nextDouble() * amplitudeSalt));
+/*     */       }
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public ImageStack buildImageStack()
+/*     */   {
+/* 142 */     ImageStack imagestack = new ImageStack(this.nx, this.ny);
+/* 143 */     for (int z = 0; z < this.nz; z++) {
+/* 144 */       FloatProcessor ip = new FloatProcessor(this.nx, this.ny);
+/* 145 */       float[] pix = (float[])ip.getPixels();
+/* 146 */       for (int k = 0; k < this.nxy; k++)
+/* 147 */         pix[k] = ((float[])(float[])this.data[z])[k];
+/* 148 */       imagestack.addSlice("" + z, ip);
+/*     */     }
+/* 150 */     return imagestack;
+/*     */   }
+/*     */ 
+/*     */   public void invert()
+/*     */   {
+/* 158 */     double max = -1.797693134862316E+308D;
+/*     */ 
+/* 160 */     for (int z = 0; z < this.nz; z++) {
+/* 161 */       float[] slice = (float[])this.data[z];
+/* 162 */       for (int k = 0; k < this.nxy; k++) {
+/* 163 */         if (slice[k] > max)
+/* 164 */           max = slice[k];
+/*     */       }
+/*     */     }
+/* 167 */     double cst = max;
+/* 168 */     for (int z = 0; z < this.nz; z++) {
+/* 169 */       float[] slice = (float[])this.data[z];
+/* 170 */       for (int k = 0; k < this.nxy; k++)
+/* 171 */         slice[k] = ((float)(max - slice[k]));
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void negate()
+/*     */   {
+/* 181 */     for (int z = 0; z < this.nz; z++) {
+/* 182 */       float[] slice = (float[])this.data[z];
+/* 183 */       for (int k = 0; k < this.nxy; k++)
+/* 184 */         slice[k] = ((float)-slice[k]);
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void clip()
+/*     */   {
+/* 193 */     clip(0.0D, 255.0D);
+/*     */   }
+/*     */ 
+/*     */   public void clip(double minLevel, double maxLevel)
+/*     */   {
+/* 204 */     for (int z = 0; z < this.nz; z++) {
+/* 205 */       float[] slice = (float[])this.data[z];
+/*     */ 
+/* 207 */       float min = (float)minLevel;
+/* 208 */       float max = (float)maxLevel;
+/* 209 */       for (int k = 0; k < this.nxy; k++) {
+/* 210 */         float value = slice[k];
+/* 211 */         if (value < min)
+/* 212 */           slice[k] = min;
+/* 213 */         if (value > max)
+/* 214 */           slice[k] = max;
+/*     */       }
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void rescale()
+/*     */   {
+/* 223 */     double maxImage = -1.797693134862316E+308D;
+/* 224 */     double minImage = 1.7976931348623157E+308D;
+/*     */ 
+/* 226 */     for (int z = 0; z < this.nz; z++) {
+/* 227 */       float[] slice = (float[])this.data[z];
+/* 228 */       for (int k = 0; k < this.nxy; k++) {
+/* 229 */         if (slice[k] > maxImage)
+/* 230 */           maxImage = slice[k];
+/* 231 */         if (slice[k] < minImage)
+/* 232 */           minImage = slice[k];
+/*     */       }
+/*     */     }
+/*     */     double a;
+/* 236 */     if (minImage - maxImage == 0.0D) {
+/* 237 */       double a = 1.0D;
+/* 238 */       minImage = 128.0D;
+/*     */     }
+/*     */     else {
+/* 241 */       a = 255.0D / (maxImage - minImage);
+/*     */     }
+/* 243 */     for (int z = 0; z < this.nz; z++) {
+/* 244 */       float[] slice = (float[])this.data[z];
+/* 245 */       for (int k = 0; k < this.nxy; k++)
+/* 246 */         slice[k] = ((float)(a * (slice[k] - minImage)));
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void rescale(double minLevel, double maxLevel)
+/*     */   {
+/* 258 */     double maxImage = -1.797693134862316E+308D;
+/* 259 */     double minImage = 1.7976931348623157E+308D;
+/*     */ 
+/* 261 */     for (int z = 0; z < this.nz; z++) {
+/* 262 */       float[] slice = (float[])this.data[z];
+/* 263 */       for (int k = 0; k < this.nxy; k++) {
+/* 264 */         if (slice[k] > maxImage)
+/* 265 */           maxImage = slice[k];
+/* 266 */         if (slice[k] < minImage)
+/* 267 */           minImage = slice[k];
+/*     */       }
+/*     */     }
+/*     */     double a;
+/* 271 */     if (minImage - maxImage == 0.0D) {
+/* 272 */       double a = 1.0D;
+/* 273 */       minImage = (maxLevel - minLevel) / 2.0D;
+/*     */     }
+/*     */     else {
+/* 276 */       a = (maxLevel - minLevel) / (maxImage - minImage);
+/*     */     }
+/* 278 */     for (int z = 0; z < this.nz; z++) {
+/* 279 */       float[] slice = (float[])this.data[z];
+/* 280 */       for (int k = 0; k < this.nxy; k++)
+/* 281 */         slice[k] = ((float)(a * (slice[k] - minImage) + minLevel));
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void rescaleCenter(double minLevel, double maxLevel)
+/*     */   {
+/* 294 */     double maxImage = -1.797693134862316E+308D;
+/* 295 */     double minImage = 1.7976931348623157E+308D;
+/*     */ 
+/* 297 */     for (int z = 0; z < this.nz; z++) {
+/* 298 */       float[] slice = (float[])this.data[z];
+/* 299 */       for (int k = 0; k < this.nxy; k++) {
+/* 300 */         if (slice[k] > maxImage)
+/* 301 */           maxImage = slice[k];
+/* 302 */         if (slice[k] < minImage)
+/* 303 */           minImage = slice[k];
+/*     */       }
+/*     */     }
+/* 306 */     double center = (maxLevel + minLevel) / 2.0D;
+/*     */     double a;
+/* 308 */     if (minImage - maxImage == 0.0D) {
+/* 309 */       double a = 1.0D;
+/* 310 */       minImage = (maxLevel - minLevel) / 2.0D;
+/*     */     }
+/*     */     else
+/*     */     {
+/*     */       double a;
+/* 313 */       if (Math.abs(maxImage) > Math.abs(minImage))
+/* 314 */         a = (maxLevel - center) / Math.abs(maxImage);
+/*     */       else
+/* 316 */         a = (center - minLevel) / Math.abs(minImage);
+/*     */     }
+/* 318 */     for (int z = 0; z < this.nz; z++) {
+/* 319 */       float[] slice = (float[])this.data[z];
+/* 320 */       for (int k = 0; k < this.nxy; k++)
+/* 321 */         slice[k] = ((float)(a * (slice[k] - minImage) + center));
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void abs()
+/*     */   {
+/* 330 */     float zero = 0.0F;
+/*     */ 
+/* 332 */     for (int z = 0; z < this.nz; z++) {
+/* 333 */       float[] slice = (float[])this.data[z];
+/* 334 */       for (int k = 0; k < this.nxy; k++)
+/* 335 */         if (slice[k] < zero)
+/* 336 */           slice[k] = (-slice[k]);
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void log()
+/*     */   {
+/* 346 */     for (int z = 0; z < this.nz; z++) {
+/* 347 */       float[] slice = (float[])this.data[z];
+/* 348 */       for (int k = 0; k < this.nxy; k++)
+/* 349 */         slice[k] = ((float)Math.log(slice[k]));
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void exp()
+/*     */   {
+/* 359 */     for (int z = 0; z < this.nz; z++) {
+/* 360 */       float[] slice = (float[])this.data[z];
+/* 361 */       for (int k = 0; k < this.nxy; k++)
+/* 362 */         slice[k] = ((float)Math.exp(slice[k]));
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void sqrt()
+/*     */   {
+/* 372 */     for (int z = 0; z < this.nz; z++) {
+/* 373 */       float[] slice = (float[])this.data[z];
+/* 374 */       for (int k = 0; k < this.nxy; k++)
+/* 375 */         slice[k] = ((float)Math.sqrt(slice[k]));
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void sqr()
+/*     */   {
+/* 385 */     for (int z = 0; z < this.nz; z++) {
+/* 386 */       float[] slice = (float[])this.data[z];
+/* 387 */       for (int k = 0; k < this.nxy; k++)
+/* 388 */         slice[k] *= slice[k];
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void pow(double a)
+/*     */   {
+/* 400 */     for (int z = 0; z < this.nz; z++) {
+/* 401 */       float[] slice = (float[])this.data[z];
+/* 402 */       for (int k = 0; k < this.nxy; k++)
+/* 403 */         slice[k] = ((float)Math.pow(slice[k], a));
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void add(double constant)
+/*     */   {
+/* 412 */     float cst = (float)constant;
+/*     */ 
+/* 414 */     for (int z = 0; z < this.nz; z++) {
+/* 415 */       float[] slice = (float[])this.data[z];
+/* 416 */       for (int k = 0; k < this.nxy; k++)
+/* 417 */         slice[k] += cst;
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void multiply(double constant)
+/*     */   {
+/* 428 */     float cst = (float)constant;
+/*     */ 
+/* 430 */     for (int z = 0; z < this.nz; z++) {
+/* 431 */       float[] slice = (float[])this.data[z];
+/* 432 */       for (int k = 0; k < this.nxy; k++)
+/* 433 */         slice[k] *= cst;
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void subtract(double constant)
+/*     */   {
+/* 444 */     float cst = (float)constant;
+/*     */ 
+/* 446 */     for (int z = 0; z < this.nz; z++) {
+/* 447 */       float[] slice = (float[])this.data[z];
+/* 448 */       for (int k = 0; k < this.nxy; k++)
+/* 449 */         slice[k] -= cst;
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void divide(double constant)
+/*     */   {
+/* 460 */     if (constant == 0.0D) {
+/* 461 */       throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnable to divide because the constant is 0.\n-------------------------------------------------------\n");
+/*     */     }
+/*     */ 
+/* 467 */     float cst = (float)constant;
+/*     */ 
+/* 469 */     for (int z = 0; z < this.nz; z++) {
+/* 470 */       float[] slice = (float[])this.data[z];
+/* 471 */       for (int k = 0; k < this.nxy; k++)
+/* 472 */         slice[k] /= cst;
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void threshold(double thresholdValue)
+/*     */   {
+/* 486 */     threshold(thresholdValue, 0.0D, 255.0D);
+/*     */   }
+/*     */ 
+/*     */   public void threshold(double thresholdValue, double minLevel, double maxLevel)
+/*     */   {
+/* 500 */     float low = (float)minLevel;
+/* 501 */     float high = (float)maxLevel;
+/*     */ 
+/* 503 */     for (int z = 0; z < this.nz; z++) {
+/* 504 */       float[] slice = (float[])this.data[z];
+/* 505 */       for (int k = 0; k < this.nxy; k++)
+/* 506 */         slice[k] = (slice[k] > thresholdValue ? high : low);
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void thresholdSoft(double thresholdValue)
+/*     */   {
+/* 522 */     float zero = 0.0F;
+/*     */ 
+/* 525 */     for (int z = 0; z < this.nz; z++) {
+/* 526 */       float[] slice = (float[])this.data[z];
+/* 527 */       for (int k = 0; k < this.nxy; k++) {
+/* 528 */         double pixel = slice[k];
+/* 529 */         slice[k] = (pixel > thresholdValue ? (float)(pixel - thresholdValue) : pixel <= -thresholdValue ? (float)(pixel + thresholdValue) : zero);
+/*     */       }
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void thresholdHard(double thresholdValue)
+/*     */   {
+/* 546 */     float zero = 0.0F;
+/*     */ 
+/* 549 */     for (int z = 0; z < this.nz; z++) {
+/* 550 */       float[] slice = (float[])this.data[z];
+/* 551 */       for (int k = 0; k < this.nxy; k++) {
+/* 552 */         double pixel = slice[k];
+/* 553 */         if ((pixel > -thresholdValue) && (pixel < thresholdValue))
+/* 554 */           slice[k] = zero;
+/*     */       }
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void addGaussianNoise(double amplitude)
+/*     */   {
+/* 565 */     Random rnd = new Random();
+/* 566 */     float[] slice = null;
+/* 567 */     for (int z = 0; z < this.nz; z++) {
+/* 568 */       slice = (float[])this.data[z];
+/* 569 */       for (int k = 0; k < this.nxy; k++)
+/* 570 */         slice[k] += (float)(rnd.nextGaussian() * amplitude);
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void addUniformNoise(double amplitude)
+/*     */   {
+/* 581 */     Random rnd = new Random();
+/* 582 */     float[] slice = null;
+/* 583 */     amplitude *= 2.0D;
+/* 584 */     for (int z = 0; z < this.nz; z++) {
+/* 585 */       slice = (float[])this.data[z];
+/* 586 */       for (int k = 0; k < this.nxy; k++)
+/* 587 */         slice[k] += (float)((rnd.nextDouble() - 0.5D) * amplitude);
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void addSaltPepper(double amplitudeSalt, double amplitudePepper, double percentageSalt, double percentagePepper)
+/*     */   {
+/* 601 */     Random rnd = new Random();
+/* 602 */     float[] slice = null;
+/*     */ 
+/* 604 */     if (percentageSalt > 0.0D) {
+/* 605 */       double nbSalt = this.nxy * this.nz / percentageSalt;
+/* 606 */       for (int k = 0; k < nbSalt; k++) {
+/* 607 */         int index = (int)(rnd.nextDouble() * this.nxy);
+/* 608 */         int z = (int)(rnd.nextDouble() * this.nz);
+/* 609 */         ((float[])this.data[z])[index] += (float)(rnd.nextDouble() * amplitudeSalt);
+/*     */       }
+/*     */     }
+/* 612 */     if (percentagePepper > 0.0D) {
+/* 613 */       double nbPepper = this.nxy * this.nz / percentagePepper;
+/* 614 */       for (int k = 0; k < nbPepper; k++) {
+/* 615 */         int index = (int)(rnd.nextDouble() * this.nxy);
+/* 616 */         int z = (int)(rnd.nextDouble() * this.nz);
+/* 617 */         ((float[])this.data[z])[index] -= (float)(rnd.nextDouble() * amplitudeSalt);
+/*     */       }
+/*     */     }
+/*     */   }
+/*     */ }
+
+/* Location:           C:\Users\BHUSHANNK\Downloads\Watershed_\
+ * Qualified Name:     imageware.FloatPointwise
+ * JD-Core Version:    0.6.2
+ */

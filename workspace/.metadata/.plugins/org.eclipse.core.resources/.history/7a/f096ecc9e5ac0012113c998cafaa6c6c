@@ -1,0 +1,119 @@
+/*     */ package watershedflooding;
+/*     */ 
+/*     */ import ij.IJ;
+/*     */ import ij.gui.GUI;
+/*     */ import java.awt.Color;
+/*     */ import java.awt.GridBagConstraints;
+/*     */ import java.awt.GridBagLayout;
+/*     */ import java.awt.Insets;
+/*     */ import java.awt.event.ActionEvent;
+/*     */ import java.awt.event.ActionListener;
+/*     */ import java.awt.event.WindowEvent;
+/*     */ import java.awt.event.WindowListener;
+/*     */ import javax.swing.BorderFactory;
+/*     */ import javax.swing.JButton;
+/*     */ import javax.swing.JComponent;
+/*     */ import javax.swing.JFrame;
+/*     */ import javax.swing.JLabel;
+/*     */ import javax.swing.JPanel;
+/*     */ import javax.swing.JTextArea;
+/*     */ 
+/*     */ public class Help extends JFrame
+/*     */   implements ActionListener, WindowListener
+/*     */ {
+/*  13 */   private JButton bnClose = new JButton("Close");
+/*  14 */   private GridBagLayout layout = new GridBagLayout();
+/*  15 */   private GridBagConstraints constraint = new GridBagConstraints();
+/*     */ 
+/*     */   public Help()
+/*     */   {
+/*  20 */     super("Help on Watershed");
+/*     */ 
+/*  22 */     JTextArea help = new JTextArea(40, 50);
+/*  23 */     help.append("Watershed on graylevel images\n\nhttp://bigwww.epfl.ch/sage/soft/watershed\n\nDaniel Sage\nBiomedical Imaging Group (BIG)\nEcole Polytechnique Fédérale de Lausane, Lausanne, Switzerland.\n\n20 February 2007\n\nGAUSSIAN BLUR\nThe watershed applies on graylevel images is known to oversegment the image\ndue to the noise of the natural images.\nTo avoid the oversegmentation, the noise should be reduce. One method to reduce the.\nnoise is to blur the image. We provide, here, an efficient gaussian blurring tuning with.\nthe parameter 'Radius'.\n\nWATERSHED\nSelect an image and click on 'Start Watershed' to begin the watershed process.\nThe program start to flooding from the 'min' value to the 'max' value.\nBy default, the program start to flood the dark area (in principle low values) and.\ncontinue to the brightest values (in principle high values) considering 4 neigborhood.\nThe default settings could be change by the user'.\nThe user can always stop the process by clicking on 'Stop Watershed'.\nthe parameter 'Radius'.\n\nDISPLAY\nAfter the watershed process, several views of the segmented image could be obtained.\nChoose a display and click on 'Show'.\nThe composite image is a mixture of graylevel and labels, in the basins the pixel value is.\nthe graylevel (integer part) and the label (decimal part) and over the dams the pixel value is.\n0 (integer part) and the graylevel (decimal part).\n");
+/*     */ 
+/*  58 */     help.setForeground(new Color(0, 32, 128));
+/*  59 */     help.setBackground(getBackground());
+/*     */ 
+/*  61 */     JPanel panelHelp = new JPanel();
+/*  62 */     panelHelp.setLayout(this.layout);
+/*  63 */     addComponent(panelHelp, 0, 0, 8, 1, 9, help);
+/*  64 */     panelHelp.setBorder(BorderFactory.createEtchedBorder());
+/*     */ 
+/*  67 */     this.bnClose.addActionListener(this);
+/*  68 */     addWindowListener(this);
+/*     */ 
+/*  70 */     JPanel panel = new JPanel();
+/*  71 */     panel.setLayout(this.layout);
+/*  72 */     addComponent(panel, 0, 0, 8, 1, 9, panelHelp);
+/*  73 */     addComponent(panel, 1, 0, 1, 1, 9, new JLabel("  "));
+/*  74 */     addComponent(panel, 1, 4, 1, 1, 9, this.bnClose);
+/*  75 */     addComponent(panel, 1, 5, 1, 1, 9, new JLabel("  "));
+/*     */ 
+/*  78 */     setLayout(this.layout);
+/*  79 */     JPanel pnMain = new JPanel();
+/*  80 */     pnMain.setLayout(this.layout);
+/*  81 */     addComponent(pnMain, 0, 0, 1, 1, 9, panel);
+/*  82 */     add(pnMain);
+/*  83 */     pack();
+/*  84 */     setResizable(true);
+/*  85 */     GUI.center(this);
+/*  86 */     setVisible(true);
+/*     */   }
+/*     */ 
+/*     */   private void addComponent(JPanel pn, int row, int col, int width, int height, int space, JComponent comp)
+/*     */   {
+/*  93 */     this.constraint.gridx = col;
+/*  94 */     this.constraint.gridy = row;
+/*  95 */     this.constraint.gridwidth = width;
+/*  96 */     this.constraint.gridheight = height;
+/*  97 */     this.constraint.anchor = 18;
+/*  98 */     this.constraint.insets = new Insets(space, space, space, space);
+/*  99 */     this.constraint.weightx = (IJ.isMacintosh() ? 90.0D : 100.0D);
+/* 100 */     this.constraint.fill = 2;
+/* 101 */     this.layout.setConstraints(comp, this.constraint);
+/* 102 */     pn.add(comp);
+/*     */   }
+/*     */ 
+/*     */   public synchronized void actionPerformed(ActionEvent e)
+/*     */   {
+/* 109 */     if (e.getSource() == this.bnClose) {
+/* 110 */       dispose();
+/*     */     }
+/* 112 */     notify();
+/*     */   }
+/*     */ 
+/*     */   public void windowActivated(WindowEvent e)
+/*     */   {
+/*     */   }
+/*     */ 
+/*     */   public void windowClosing(WindowEvent e)
+/*     */   {
+/* 126 */     dispose();
+/*     */   }
+/*     */ 
+/*     */   public void windowClosed(WindowEvent e)
+/*     */   {
+/*     */   }
+/*     */ 
+/*     */   public void windowDeactivated(WindowEvent e)
+/*     */   {
+/*     */   }
+/*     */ 
+/*     */   public void windowDeiconified(WindowEvent e)
+/*     */   {
+/*     */   }
+/*     */ 
+/*     */   public void windowIconified(WindowEvent e)
+/*     */   {
+/*     */   }
+/*     */ 
+/*     */   public void windowOpened(WindowEvent e)
+/*     */   {
+/*     */   }
+/*     */ }
+
+/* Location:           C:\Users\BHUSHANNK\Downloads\Watershed_\
+ * Qualified Name:     watershedflooding.Help
+ * JD-Core Version:    0.6.2
+ */

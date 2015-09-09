@@ -1,0 +1,142 @@
+/*     */ package watershedflooding;
+/*     */ 
+/*     */ import ij.IJ;
+/*     */ import ij.ImagePlus;
+/*     */ import ij.ImageStack;
+/*     */ import ij.WindowManager;
+/*     */ import ij.text.TextPanel;
+/*     */ import ij.text.TextWindow;
+/*     */ import imageware.Builder;
+/*     */ import imageware.ImageWare;
+/*     */ 
+/*     */ public class WatershedMeasurements
+/*     */ {
+/*     */   public static void measure()
+/*     */   {
+/*  14 */     ImagePlus imp = WindowManager.getCurrentImage();
+/*  15 */     measure(imp);
+/*     */   }
+/*     */ 
+/*     */   public static void measure(ImagePlus imp) {
+/*  19 */     TextWindow tw = new TextWindow("Watershed Measurements", "", 400, 400);
+/*  20 */     String msg = "Slice\tBasins\tXG\tYG\t";
+/*  21 */     msg = msg + "Minimum X\tMinimun Y\tMinimum Value\t";
+/*  22 */     msg = msg + "Volume\tArea\tPerimeter\tMax\t";
+/*  23 */     tw.getTextPanel().setColumnHeadings(msg);
+/*     */ 
+/*  26 */     int nx = imp.getWidth();
+/*  27 */     int ny = imp.getHeight();
+/*  28 */     int nz = imp.getStack().getSize();
+/*  29 */     ImageWare volume = Builder.wrap(imp.getStack());
+/*  30 */     ImageWare combine = Builder.create(nx, ny, 1, volume.getType());
+/*     */ 
+/*  32 */     for (int k = 0; k < nz; k++) {
+/*  33 */       volume.getXY(0, 0, k, combine);
+/*  34 */       ImageWare basins = Builder.create(nx, ny, 1, 3);
+/*  35 */       ImageWare image = Builder.create(nx, ny, 1, 3);
+/*     */ 
+/*  37 */       for (int x = 1; x < nx - 1; x++)
+/*  38 */         for (int y = 1; y < ny - 1; y++) {
+/*  39 */           double p = combine.getPixel(x, y, 0);
+/*  40 */           if ((int)p == 0) {
+/*  41 */             basins.putPixel(x, y, 0, 0.0D);
+/*  42 */             image.putPixel(x, y, 0, Math.round(p * 10000.0D));
+/*     */           }
+/*     */           else {
+/*  45 */             basins.putPixel(x, y, 0, Math.round((p - (int)p) * 10000.0D));
+/*  46 */             image.putPixel(x, y, 0, (int)p);
+/*     */           }
+/*     */         }
+/*  49 */       measureSlice(basins, image, tw, k + 1);
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   private static void measureSlice(ImageWare basins, ImageWare image, TextWindow tw, int slice)
+/*     */   {
+/*  56 */     int nx = basins.getWidth();
+/*  57 */     int ny = basins.getHeight();
+/*     */ 
+/*  60 */     int maxClass = (int)basins.getMaximum();
+/*  61 */     int minClass = (int)basins.getMinimum();
+/*  62 */     int nb = maxClass - minClass + 1;
+/*  63 */     double[] xg = new double[nb];
+/*  64 */     double[] yg = new double[nb];
+/*  65 */     int[] area = new int[nb];
+/*  66 */     float[] volume = new float[nb];
+/*  67 */     int[] perimeter = new int[nb];
+/*  68 */     float[] min = new float[nb];
+/*  69 */     int[] minX = new int[nb];
+/*  70 */     int[] minY = new int[nb];
+/*  71 */     float[] max = new float[nb];
+/*  72 */     float[] barycenterX = new float[nb];
+/*  73 */     float[] barycenterY = new float[nb];
+/*     */ 
+/*  75 */     int[] status = new int[nb];
+/*     */ 
+/*  77 */     for (int l = 0; l < nb; l++) {
+/*  78 */       xg[l] = 0.0D;
+/*  79 */       yg[l] = 0.0D;
+/*  80 */       area[l] = 0;
+/*  81 */       volume[l] = 0.0F;
+/*  82 */       perimeter[l] = 0;
+/*  83 */       min[l] = 3.4028235E+38F;
+/*  84 */       minX[l] = 0;
+/*  85 */       minY[l] = 0;
+/*  86 */       max[l] = 1.4E-45F;
+/*  87 */       barycenterX[l] = 0.0F;
+/*  88 */       barycenterY[l] = 0.0F;
+/*     */     }
+/*     */ 
+/*  91 */     double[][] arr = new double[3][3];
+/*     */ 
+/*  93 */     for (int x = 1; x < nx - 1; x++) {
+/*  94 */       for (int y = 1; y < ny - 1; y++) {
+/*  95 */         int v = (int)image.getPixel(x, y, 0);
+/*  96 */         basins.getNeighborhoodXY(x, y, 0, arr, (byte)2);
+/*  97 */         int l = (int)arr[1][1];
+/*  98 */         xg[l] += x;
+/*  99 */         yg[l] += y;
+/* 100 */         area[l] += 1;
+/* 101 */         volume[l] += 255 - v;
+/* 102 */         barycenterX[l] += (255 - v) * x;
+/* 103 */         barycenterY[l] += (255 - v) * y;
+/* 104 */         if (v < min[l]) {
+/* 105 */           min[l] = v;
+/* 106 */           minX[l] = x;
+/* 107 */           minY[l] = y;
+/*     */         }
+/* 109 */         if (v > max[l]) {
+/* 110 */           max[l] = v;
+/*     */         }
+/* 112 */         for (int k = 0; k < 3; k++)
+/* 113 */           for (int kk = 0; kk < 3; kk++)
+/* 114 */             if (arr[k][kk] == 0.0D) {
+/* 115 */               perimeter[l] += 1;
+/* 116 */               break;
+/*     */             }
+/*     */       }
+/*     */     }
+/* 120 */     double[][] arr5 = new double[5][5];
+/*     */ 
+/* 124 */     for (int l = 0; l < nb; l++) {
+/* 125 */       if (area[l] > 0) {
+/* 126 */         xg[l] /= area[l];
+/* 127 */         yg[l] /= area[l];
+/*     */       }
+/*     */ 
+/*     */     }
+/*     */ 
+/* 132 */     for (int l = 1; l < nb; l++)
+/* 133 */       if (area[l] > 0) {
+/* 134 */         String msg = "" + slice + "\t" + l + "\t" + IJ.d2s(xg[l]) + "\t" + IJ.d2s(yg[l]) + "\t";
+/* 135 */         msg = msg + IJ.d2s(minX[l], 0) + "\t" + IJ.d2s(minY[l], 0) + "\t" + IJ.d2s(min[l], 0) + "\t";
+/* 136 */         msg = msg + IJ.d2s(volume[l], 0) + "\t" + IJ.d2s(area[l], 0) + "\t" + IJ.d2s(perimeter[l], 0) + "\t" + IJ.d2s(max[l], 0) + "\t";
+/* 137 */         tw.append(msg);
+/*     */       }
+/*     */   }
+/*     */ }
+
+/* Location:           C:\Users\BHUSHANNK\Downloads\Watershed_\
+ * Qualified Name:     watershedflooding.WatershedMeasurements
+ * JD-Core Version:    0.6.2
+ */

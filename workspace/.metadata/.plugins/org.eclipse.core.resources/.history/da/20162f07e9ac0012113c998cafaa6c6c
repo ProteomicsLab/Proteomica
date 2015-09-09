@@ -1,0 +1,282 @@
+/*     */ package imageware;
+/*     */ 
+/*     */ import ij.ImagePlus;
+/*     */ import ij.ImageStack;
+/*     */ import java.awt.Image;
+/*     */ import java.io.PrintStream;
+/*     */ 
+/*     */ public class ShortSet extends ShortProcess
+/*     */   implements ImageWare
+/*     */ {
+/*     */   protected ShortSet(int nx, int ny, int nz)
+/*     */   {
+/*  26 */     super(nx, ny, nz); } 
+/*  27 */   protected ShortSet(Image image, int mode) { super(image, mode); } 
+/*     */   protected ShortSet(ImageStack stack, int mode) {
+/*  29 */     super(stack, mode); } 
+/*  30 */   protected ShortSet(ImageStack stack, byte chan) { super(stack, chan); } 
+/*     */   protected ShortSet(byte[] array, int mode) {
+/*  32 */     super(array, mode); } 
+/*  33 */   protected ShortSet(byte[][] array, int mode) { super(array, mode); } 
+/*  34 */   protected ShortSet(byte[][][] array, int mode) { super(array, mode); } 
+/*  35 */   protected ShortSet(short[] array, int mode) { super(array, mode); } 
+/*  36 */   protected ShortSet(short[][] array, int mode) { super(array, mode); } 
+/*  37 */   protected ShortSet(short[][][] array, int mode) { super(array, mode); } 
+/*  38 */   protected ShortSet(float[] array, int mode) { super(array, mode); } 
+/*  39 */   protected ShortSet(float[][] array, int mode) { super(array, mode); } 
+/*  40 */   protected ShortSet(float[][][] array, int mode) { super(array, mode); } 
+/*  41 */   protected ShortSet(double[] array, int mode) { super(array, mode); } 
+/*  42 */   protected ShortSet(double[][] array, int mode) { super(array, mode); } 
+/*  43 */   protected ShortSet(double[][][] array, int mode) { super(array, mode); }
+/*     */ 
+/*     */ 
+/*     */   public ImageWare duplicate()
+/*     */   {
+/*  54 */     ImageWare out = new ShortSet(this.nx, this.ny, this.nz);
+/*     */ 
+/*  56 */     for (int z = 0; z < this.nz; z++) {
+/*  57 */       short[] outdata = (short[])((ShortSet)out).data[z];
+/*  58 */       System.arraycopy(this.data[z], 0, outdata, 0, this.nxy);
+/*     */     }
+/*  60 */     return out;
+/*     */   }
+/*     */ 
+/*     */   public ImageWare replicate()
+/*     */   {
+/*  72 */     return new ShortSet(this.nx, this.ny, this.nz);
+/*     */   }
+/*     */ 
+/*     */   public ImageWare replicate(int type)
+/*     */   {
+/*  85 */     switch (type) {
+/*     */     case 1:
+/*  87 */       return new ByteSet(this.nx, this.ny, this.nz);
+/*     */     case 2:
+/*  89 */       return new ShortSet(this.nx, this.ny, this.nz);
+/*     */     case 3:
+/*  91 */       return new FloatSet(this.nx, this.ny, this.nz);
+/*     */     case 4:
+/*  93 */       return new DoubleSet(this.nx, this.ny, this.nz);
+/*     */     }
+/*  95 */     throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnknown type " + type + "].\n" + "-------------------------------------------------------\n");
+/*     */   }
+/*     */ 
+/*     */   public void copy(ImageWare source)
+/*     */   {
+/* 112 */     if (this.nx != source.getSizeX()) {
+/* 113 */       throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnable to copy because it is not the same size (" + this.nx + " != " + source.getSizeX() + ").\n" + "-------------------------------------------------------\n");
+/*     */     }
+/*     */ 
+/* 120 */     if (this.ny != source.getSizeY()) {
+/* 121 */       throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnable to copy because it is not the same size (" + this.ny + " != " + source.getSizeY() + ").\n" + "-------------------------------------------------------\n");
+/*     */     }
+/*     */ 
+/* 128 */     if (this.nz != source.getSizeZ()) {
+/* 129 */       throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnable to copy because it is not the same size (" + this.nz + " != " + source.getSizeZ() + ").\n" + "-------------------------------------------------------\n");
+/*     */     }
+/*     */ 
+/* 136 */     if (getType() != source.getType()) {
+/* 137 */       throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnable to copy because it is not the same type (" + getType() + " != " + source.getType() + ").\n" + "-------------------------------------------------------\n");
+/*     */     }
+/*     */ 
+/* 145 */     for (int z = 0; z < this.nz; z++) {
+/* 146 */       short[] src = (short[])((ShortSet)source).data[z];
+/* 147 */       System.arraycopy(src, 0, this.data[z], 0, this.nxy);
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public ImageWare convert(int type)
+/*     */   {
+/* 161 */     if (type == 2)
+/* 162 */       return duplicate();
+/* 163 */     ImageWare out = null;
+/* 164 */     switch (type)
+/*     */     {
+/*     */     case 1:
+/* 168 */       out = new ByteSet(this.nx, this.ny, this.nz);
+/*     */ 
+/* 170 */       for (int z = 0; z < this.nz; z++) {
+/* 171 */         short[] slice = (short[])this.data[z];
+/* 172 */         byte[] outslice = (byte[])((ByteSet)out).data[z];
+/* 173 */         for (int k = 0; k < this.nxy; k++) {
+/* 174 */           outslice[k] = ((byte)(slice[k] & 0xFFFF));
+/*     */         }
+/*     */       }
+/*     */ 
+/* 178 */       break;
+/*     */     case 2:
+/* 182 */       out = new ShortSet(this.nx, this.ny, this.nz);
+/*     */ 
+/* 184 */       for (int z = 0; z < this.nz; z++) {
+/* 185 */         short[] slice = (short[])this.data[z];
+/* 186 */         short[] outslice = (short[])((ShortSet)out).data[z];
+/* 187 */         for (int k = 0; k < this.nxy; k++) {
+/* 188 */           outslice[k] = ((short)(slice[k] & 0xFFFF));
+/*     */         }
+/*     */       }
+/*     */ 
+/* 192 */       break;
+/*     */     case 3:
+/* 196 */       out = new FloatSet(this.nx, this.ny, this.nz);
+/*     */ 
+/* 198 */       for (int z = 0; z < this.nz; z++) {
+/* 199 */         short[] slice = (short[])this.data[z];
+/* 200 */         float[] outslice = (float[])((FloatSet)out).data[z];
+/* 201 */         for (int k = 0; k < this.nxy; k++) {
+/* 202 */           outslice[k] = (slice[k] & 0xFFFF);
+/*     */         }
+/*     */       }
+/*     */ 
+/* 206 */       break;
+/*     */     case 4:
+/* 210 */       out = new DoubleSet(this.nx, this.ny, this.nz);
+/*     */ 
+/* 212 */       for (int z = 0; z < this.nz; z++) {
+/* 213 */         short[] slice = (short[])this.data[z];
+/* 214 */         double[] outslice = (double[])((DoubleSet)out).data[z];
+/* 215 */         for (int k = 0; k < this.nxy; k++) {
+/* 216 */           outslice[k] = (slice[k] & 0xFFFF);
+/*     */         }
+/*     */       }
+/*     */ 
+/* 220 */       break;
+/*     */     default:
+/* 222 */       throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnknown type " + type + "].\n" + "-------------------------------------------------------\n");
+/*     */     }
+/*     */ 
+/* 229 */     return out;
+/*     */   }
+/*     */ 
+/*     */   public void printInfo()
+/*     */   {
+/* 236 */     System.out.println("ImageWare object information");
+/* 237 */     System.out.println("Dimension: " + getDimension());
+/* 238 */     System.out.println("Size: [" + this.nx + ", " + this.ny + ", " + this.nz + "]");
+/* 239 */     System.out.println("TotalSize: " + getTotalSize());
+/* 240 */     System.out.println("Type: " + getTypeToString());
+/* 241 */     System.out.println("Maximun: " + getMaximum());
+/* 242 */     System.out.println("Minimun: " + getMinimum());
+/* 243 */     System.out.println("Mean: " + getMean());
+/* 244 */     System.out.println("Norm1: " + getNorm1());
+/* 245 */     System.out.println("Norm2: " + getNorm2());
+/* 246 */     System.out.println("Total: " + getTotal());
+/* 247 */     System.out.println("");
+/*     */   }
+/*     */ 
+/*     */   public void show()
+/*     */   {
+/* 255 */     String title = getTypeToString();
+/* 256 */     switch (getDimension()) {
+/*     */     case 1:
+/* 258 */       title = title + " line";
+/* 259 */       break;
+/*     */     case 2:
+/* 261 */       title = title + " image";
+/* 262 */       break;
+/*     */     case 3:
+/* 264 */       title = title + " volume";
+/*     */     }
+/*     */ 
+/* 267 */     ImagePlus imp = new ImagePlus(title, buildImageStack());
+/* 268 */     imp.show();
+/*     */   }
+/*     */ 
+/*     */   public void show(String title)
+/*     */   {
+/* 278 */     ImagePlus imp = new ImagePlus(title, buildImageStack());
+/* 279 */     imp.show();
+/*     */   }
+/*     */ 
+/*     */   public double getMinimum()
+/*     */   {
+/* 289 */     double min = 1.7976931348623157E+308D;
+/*     */ 
+/* 291 */     for (int z = 0; z < this.nz; z++) {
+/* 292 */       short[] slice = (short[])this.data[z];
+/* 293 */       for (int k = 0; k < this.nxy; k++)
+/* 294 */         if ((slice[k] & 0xFFFF) < min)
+/* 295 */           min = slice[k] & 0xFFFF;
+/*     */     }
+/* 297 */     return min;
+/*     */   }
+/*     */ 
+/*     */   public double getMaximum()
+/*     */   {
+/* 306 */     double max = -1.797693134862316E+308D;
+/*     */ 
+/* 308 */     for (int z = 0; z < this.nz; z++) {
+/* 309 */       short[] slice = (short[])this.data[z];
+/* 310 */       for (int k = 0; k < this.nxy; k++)
+/* 311 */         if ((slice[k] & 0xFFFF) > max)
+/* 312 */           max = slice[k] & 0xFFFF;
+/*     */     }
+/* 314 */     return max;
+/*     */   }
+/*     */ 
+/*     */   public double getMean()
+/*     */   {
+/* 323 */     return getTotal() / (this.nz * this.nxy);
+/*     */   }
+/*     */ 
+/*     */   public double getNorm1()
+/*     */   {
+/* 332 */     double norm = 0.0D;
+/* 333 */     double value = 0.0D;
+/*     */ 
+/* 335 */     for (int z = 0; z < this.nz; z++) {
+/* 336 */       short[] slice = (short[])this.data[z];
+/* 337 */       for (int k = 0; k < this.nxy; k++) {
+/* 338 */         value = slice[k] & 0xFFFF;
+/* 339 */         norm += (value > 0.0D ? value : -value);
+/*     */       }
+/*     */     }
+/* 342 */     return norm;
+/*     */   }
+/*     */ 
+/*     */   public double getNorm2()
+/*     */   {
+/* 351 */     double norm = 0.0D;
+/*     */ 
+/* 353 */     for (int z = 0; z < this.nz; z++) {
+/* 354 */       short[] slice = (short[])this.data[z];
+/* 355 */       for (int k = 0; k < this.nxy; k++)
+/* 356 */         norm += (slice[k] & 0xFFFF) * (slice[k] & 0xFFFF);
+/*     */     }
+/* 358 */     return norm;
+/*     */   }
+/*     */ 
+/*     */   public double getTotal()
+/*     */   {
+/* 367 */     double total = 0.0D;
+/*     */ 
+/* 369 */     for (int z = 0; z < this.nz; z++) {
+/* 370 */       short[] slice = (short[])this.data[z];
+/* 371 */       for (int k = 0; k < this.nxy; k++)
+/* 372 */         total += (slice[k] & 0xFFFF);
+/*     */     }
+/* 374 */     return total;
+/*     */   }
+/*     */ 
+/*     */   public double[] getMinMax()
+/*     */   {
+/* 384 */     double max = -1.797693134862316E+308D;
+/* 385 */     double min = 1.7976931348623157E+308D;
+/*     */ 
+/* 387 */     for (int z = 0; z < this.nz; z++) {
+/* 388 */       short[] slice = (short[])this.data[z];
+/* 389 */       for (int k = 0; k < this.nxy; k++) {
+/* 390 */         if ((slice[k] & 0xFFFF) > max)
+/* 391 */           max = slice[k] & 0xFFFF;
+/* 392 */         if ((slice[k] & 0xFFFF) < min)
+/* 393 */           min = slice[k] & 0xFFFF;
+/*     */       }
+/*     */     }
+/* 396 */     double[] minmax = { min, max };
+/* 397 */     return minmax;
+/*     */   }
+/*     */ }
+
+/* Location:           C:\Users\BHUSHANNK\Downloads\Watershed_\
+ * Qualified Name:     imageware.ShortSet
+ * JD-Core Version:    0.6.2
+ */

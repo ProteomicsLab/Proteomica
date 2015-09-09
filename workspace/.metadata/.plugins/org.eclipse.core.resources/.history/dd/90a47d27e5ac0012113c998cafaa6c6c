@@ -1,0 +1,458 @@
+package watershedflooding;
+
+import ij.IJ;
+import ij.ImagePlus;
+import ij.ImageStack;
+import ij.process.ColorProcessor;
+import imageware.Builder;
+import imageware.FMath;
+import imageware.ImageWare;
+import java.util.Vector;
+
+public class Watershed
+{
+  final int MAXBASINS = 1000000;
+
+  Vector fifo = new Vector(20, 10);
+  private int levels = 0;
+  private int nx;
+  private int ny;
+  private boolean stop = false;
+  private boolean progression = false;
+
+  private int maxSizeStack = 0;
+  private ImageStack stackAnimation;
+  private byte[][] LUTColor;
+  private int connectivity;
+  private int maxLevel;
+  private boolean animation;
+  private float[] outPixels;
+  private ImageWare output = null;
+
+  public Watershed(boolean progression) {
+    this.progression = progression;
+    this.animation = false;
+    this.LUTColor = WatershedDisplay.createLUTColor(1000000);
+  }
+
+  public void enableAnimation() {
+    this.animation = true;
+  }
+
+  public ImageWare doWatershed(ImageWare image, boolean connectivity4, int minLevel, int maxLevel) {
+    if (this.progression) {
+      IJ.write("Start the watershed flooding");
+    }
+    this.connectivity = (connectivity4 ? 4 : 8);
+    this.maxLevel = maxLevel;
+    this.nx = image.getWidth();
+    this.ny = image.getHeight();
+    if (minLevel != 0) {
+      if (this.progression)
+        IJ.write("Fix the minimal level at " + minLevel);
+      for (int i = 0; i < this.nx; i++) {
+        for (int j = 0; j < this.ny; j++)
+          if (image.getPixel(i, j, 0) < minLevel)
+            image.putPixel(i, j, 0, minLevel);
+      }
+    }
+    int max = FMath.ceil(image.getMaximum());
+    if (this.progression)
+      IJ.write("Find the maximal level at " + maxLevel);
+    maxLevel = max > maxLevel ? maxLevel : max;
+
+    if (this.progression)
+      IJ.write("Histogram");
+    int[] h = new int[256];
+    int[] pos = new int[256];
+    double[] pixelValue = new double[this.nx * this.ny];
+    int[] pixelX = new int[this.nx * this.ny];
+    int[] pixelY = new int[this.nx * this.ny];
+    int[][] pixelPos = new int[this.nx][this.ny];
+
+    this.stop = false;
+    this.maxSizeStack = 0;
+    hist(image, h);
+    initPos(h, pos);
+    sort(image, pos, pixelValue, pixelX, pixelY, pixelPos);
+    if (this.progression)
+      IJ.write("Flooding");
+    this.output = flooding(h, pos, pixelValue, pixelX, pixelY, pixelPos);
+    return this.output;
+  }
+
+  public ImagePlus getDams() {
+    int nx = this.output.getSizeX();
+    int ny = this.output.getSizeY();
+    int nz = this.output.getSizeZ();
+    ImageWare out = Builder.create(nx, ny, nz, 1);
+    out.fillConstant(255.0D);
+    for (int z = 0; z < nz; z++)
+      for (int x = 0; x < nx; x++)
+        for (int y = 0; y < ny; y++)
+          if (this.output.getPixel(x, y, z) == 0.0D)
+            out.putPixel(x, y, z, 0.0D);
+    return new ImagePlus("Dams", out.buildImageStack());
+  }
+
+  public ImagePlus getBasins()
+  {
+    int nx = this.output.getSizeX();
+    int ny = this.output.getSizeY();
+    int nz = this.output.getSizeZ();
+    int size = nx * ny;
+    ImageWare r = Builder.create(nx, ny, nz, 1);
+    ImageWare g = Builder.create(nx, ny, nz, 1);
+    ImageWare b = Builder.create(nx, ny, nz, 1);
+
+    ImageStack stack = new ImageStack(nx, ny);
+    for (int z = 0; z < nz; z++) {
+      byte[] pixr = r.getSliceByte(z);
+      byte[] pixg = g.getSliceByte(z);
+      byte[] pixb = b.getSliceByte(z);
+      float[] pixout = this.output.getSliceFloat(z);
+      for (int index = 0; index < size; index++) {
+        int v = (int)pixout[index];
+        pixr[index] = this.LUTColor[0][v];
+        pixg[index] = this.LUTColor[1][v];
+        pixb[index] = this.LUTColor[2][v];
+      }
+      ColorProcessor cp = new ColorProcessor(nx, ny);
+      cp.setRGB(pixr, pixg, pixb);
+      stack.addSlice("", cp);
+    }
+
+    return new ImagePlus("Basins", stack);
+  }
+
+  public ImagePlus getRedDams(ImagePlus first) {
+    ImageWare firstData = Builder.create(first);
+    int size = this.output.getSizeX() * this.output.getSizeY();
+    int nz = this.output.getSizeZ();
+    ImageWare original = firstData.convert(1);
+    ImageWare over = original.duplicate();
+    byte b255 = -1;
+    byte b0 = 0;
+    ImageStack stack = new ImageStack(this.nx, this.ny);
+    for (int z = 0; z < nz; z++) {
+      float[] pixOutput = this.output.getSliceFloat(z);
+      byte[] pixOver = over.getSliceByte(z);
+      byte[] pixOriginal = original.getSliceByte(z);
+      for (int index = 0; index < size; index++)
+        if (pixOutput[index] == 0.0D) {
+          pixOver[index] = b255;
+          pixOriginal[index] = b0;
+        }
+      ColorProcessor cp = new ColorProcessor(this.nx, this.ny);
+      cp.setRGB(pixOver, pixOriginal, pixOriginal);
+      stack.addSlice("", cp);
+    }
+    return new ImagePlus("Overlaid dams", stack);
+  }
+
+  public ImagePlus getComposite(ImagePlus first) {
+    ImageWare firstData = Builder.create(first);
+    int nx = this.output.getSizeX();
+    int ny = this.output.getSizeY();
+    int nz = this.output.getSizeZ();
+    int size = nx * ny;
+    ImageWare combine = Builder.create(nx, ny, nz, 3);
+    byte b255 = -1;
+    byte b0 = 0;
+    for (int z = 0; z < nz; z++) {
+      float[] pixOutput = this.output.getSliceFloat(z);
+      byte[] pixFirst = firstData.getSliceByte(z);
+      float[] pixCombine = combine.getSliceFloat(z);
+      for (int index = 0; index < size; index++)
+        if (pixOutput[index] == 0.0D)
+          pixCombine[index] = ((pixFirst[index] & 0xFF) / 10000.0F);
+        else
+          pixCombine[index] = ((pixFirst[index] & 0xFF) + pixOutput[index] / 10000.0F);
+    }
+    return new ImagePlus("Combine", combine.buildImageStack());
+  }
+
+  public void stop() {
+    this.stop = true;
+  }
+
+  private void hist(ImageWare image, int[] h)
+  {
+    for (int i = 0; i <= 255; i++)
+      h[i] = 0;
+    for (int x = 1; x < this.nx - 1; x++)
+      for (int y = 1; y < this.ny - 1; y++) {
+        int v = (int)image.getPixel(x, y, 0);
+        h[v] += 1;
+      }
+  }
+
+  private void initPos(int[] h, int[] pos)
+  {
+    pos[0] = 0;
+    pos[1] = h[0];
+    for (int i = 2; i < 256; i++)
+      pos[i] = (h[(i - 1)] + pos[(i - 1)]);
+  }
+
+  private void sort(ImageWare image, int[] pos, double[] pixelValue, int[] pixelX, int[] pixelY, int[][] pixelPos)
+  {
+    int len = pos.length;
+    int[] position = new int[len];
+    for (int i = 0; i < len; i++) {
+      position[i] = pos[i];
+    }
+    for (int x = 1; x < this.nx - 1; x++)
+      for (int y = 1; y < this.ny - 1; y++) {
+        int v = (int)image.getPixel(x, y, 0);
+        pixelValue[position[v]] = v;
+        pixelX[position[v]] = x;
+        pixelY[position[v]] = y;
+        pixelPos[x][y] = position[v];
+        position[v] += 1;
+      }
+  }
+
+  private ImageWare flooding(int[] h, int[] pos, double[] pixelValue, int[] pixelX, int[] pixelY, int[][] pixelPos)
+  {
+    ImageWare output = Builder.create(this.nx, this.ny, 1, 3);
+    this.outPixels = output.getSliceFloat(0);
+
+    int size = this.nx * this.ny;
+    int limit = (this.nx - 2) * (this.ny - 2);
+    float MASK = 2.0F;
+    float WSHED = 0.0F;
+    float INIT = 1.0F;
+    float INQUEUE = 3.0F;
+    float FIRSTLABEL = 10.0F;
+
+    float[] neigh = new float[8];
+    int gray = (int)pixelValue[0];
+    boolean flag = false;
+    float current_label = 10.0F;
+    ImageStack stack = null;
+
+    int[] dx = new int[this.connectivity];
+    int[] dy = new int[this.connectivity];
+    if (this.connectivity == 4)
+    {
+      int tmp123_122 = 0; dx[3] = tmp123_122; dx[0] = tmp123_122;
+      dx[1] = -1;
+      dx[2] = 1;
+      int tmp143_142 = 0; dy[2] = tmp143_142; dy[1] = tmp143_142;
+      dy[0] = -1;
+      dy[3] = 1;
+    }
+    else
+    {
+      byte tmp171_170 = (dx[5] = -1); dx[3] = tmp171_170; dx[0] = tmp171_170;
+      int tmp187_186 = (dx[7] = 1); dx[4] = tmp187_186; dx[2] = tmp187_186;
+      int tmp198_197 = 0; dx[6] = tmp198_197; dx[1] = tmp198_197;
+      byte tmp213_212 = (dy[2] = -1); dy[1] = tmp213_212; dy[0] = tmp213_212;
+      int tmp230_229 = (dy[7] = 1); dy[6] = tmp230_229; dy[5] = tmp230_229;
+      int tmp240_239 = 0; dy[4] = tmp240_239; dy[3] = tmp240_239;
+    }
+    for (int k = 0; k < size; k++) {
+      this.outPixels[k] = 1.0F;
+    }
+
+    if (this.animation) {
+      createStackAnimation();
+    }
+
+    for (int l = 1; (l <= this.maxLevel) && (!this.stop); l++) {
+      int pgray = pos[gray];
+      for (int j = 0; j < h[gray]; j++) {
+        int xp = pixelX[(pgray + j)];
+        int yp = pixelY[(pgray + j)];
+        this.outPixels[(xp + this.nx * yp)] = 2.0F;
+        float central = getNeighborhood(xp, yp, neigh);
+        for (int n = 0; n < this.connectivity; n++) {
+          if (neigh[n] > 4.0F) {
+            this.outPixels[(xp + this.nx * yp)] = 3.0F;
+            this.fifo.addElement(new Integer(pgray + j));
+          }
+          else if (neigh[n] == 0.0F) {
+            this.outPixels[(xp + this.nx * yp)] = 3.0F;
+            this.fifo.addElement(new Integer(pgray + j));
+          }
+        }
+      }
+
+      int fs = this.fifo.size();
+      while (!this.fifo.isEmpty()) {
+        int p = ((Integer)this.fifo.elementAt(0)).intValue();
+        this.fifo.removeElementAt(0);
+        int xp = pixelX[p];
+        int yp = pixelY[p];
+        float central = getNeighborhood(xp, yp, neigh);
+        for (int n = 0; n < this.connectivity; n++) {
+          if (neigh[n] > 9.0F) {
+            if (central == 3.0F) {
+              this.outPixels[(xp + this.nx * yp)] = neigh[n];
+              central = neigh[n];
+            }
+            else if ((central == 0.0F) && (flag == true)) {
+              this.outPixels[(xp + this.nx * yp)] = neigh[n];
+              central = neigh[n];
+            }
+            else if ((central > 9.0F) && (central != neigh[n])) {
+              this.outPixels[(xp + this.nx * yp)] = 0.0F;
+              central = 0.0F;
+              flag = false;
+            }
+
+          }
+          else if (neigh[n] == 0.0F) {
+            if (central == 3.0F) {
+              this.outPixels[(xp + this.nx * yp)] = 0.0F;
+              central = 0.0F;
+              flag = true;
+            }
+          }
+          else if (neigh[n] == 2.0F) {
+            this.outPixels[(xp + dx[n] + this.nx * (yp + dy[n]))] = 3.0F;
+            neigh[n] = 3.0F;
+            this.fifo.addElement(new Integer(pixelPos[(xp + dx[n])][(yp + dy[n])]));
+          }
+
+        }
+
+      }
+
+      pgray = pos[gray];
+      for (int j = 0; (j < h[gray]) && (!this.stop); j++) {
+        int xp = pixelX[(pgray + j)];
+        int yp = pixelY[(pgray + j)];
+        if (this.outPixels[(xp + this.nx * yp)] == 2.0F) {
+          current_label += 1.0F;
+          this.stop = (current_label > 1000000.0F);
+          this.fifo.addElement(new Integer(pgray + j));
+          this.outPixels[(xp + this.nx * yp)] = current_label;
+          while ((!this.fifo.isEmpty()) && (!this.stop)) {
+            int p = ((Integer)this.fifo.elementAt(0)).intValue();
+            this.fifo.removeElementAt(0);
+            float central = getNeighborhood(pixelX[p], pixelY[p], neigh);
+            for (int n = 0; n < this.connectivity; n++) {
+              if (neigh[n] == 2.0F) {
+                xp = pixelX[p] + dx[n];
+                yp = pixelY[p] + dy[n];
+                this.fifo.addElement(new Integer(pixelPos[xp][yp]));
+                this.outPixels[(xp + this.nx * yp)] = current_label;
+                neigh[n] = current_label;
+              }
+            }
+          }
+        }
+
+        if (gray >= this.maxLevel)
+          this.stop = true;
+      }
+      if (this.progression) {
+        IJ.write("Level: " + l + " graylevel: " + gray + "\t Queue: " + fs + "\t Basins: " + current_label);
+      }
+      if (pos[gray] + h[gray] < limit) {
+        gray = (int)pixelValue[(pos[gray] + h[gray])];
+      }
+      if (this.animation) {
+        addImageToStackAnimation(output);
+      }
+    }
+    if (this.animation) {
+      displayStackAnimation();
+    }
+
+    ImageWare outws = output.duplicate();
+    float[] outwsPixels = outws.getSliceFloat(0);
+
+    int index = 0;
+    for (int i = 1; i < this.nx - 1; i++) {
+      for (int j = 1; j < this.ny - 1; j++) {
+        index = i + j * this.nx;
+        if (this.outPixels[index] < 10.0F) {
+          if (this.outPixels[(index + 1)] > 10.0F)
+            outwsPixels[index] = 0.0F;
+          else if (this.outPixels[(index - 1)] > 10.0F)
+            outwsPixels[index] = 0.0F;
+          else if (this.outPixels[(index + this.nx)] > 10.0F)
+            outwsPixels[index] = 0.0F;
+          else if (this.outPixels[(index - this.nx)] > 10.0F) {
+            outwsPixels[index] = 0.0F;
+          }
+        }
+      }
+    }
+    int j = (this.ny - 1) * this.nx;
+    for (int i = 0; i < this.nx; i++) {
+      outwsPixels[i] = 0.0F;
+      outwsPixels[(i + j)] = 0.0F;
+    }
+    i = this.nx - 1;
+    for (j = 0; j < size; j += this.nx) {
+      outwsPixels[j] = 0.0F;
+      outwsPixels[(i + j)] = 0.0F;
+    }
+    return outws;
+  }
+
+  private float getNeighborhood(int x, int y, float[] neigh)
+  {
+    float central;
+    if (this.connectivity == 4) {
+      int index = x + (y - 1) * this.nx;
+      neigh[0] = this.outPixels[index]; index += this.nx - 1;
+      neigh[1] = this.outPixels[index]; index++;
+      float central = this.outPixels[index]; index++;
+      neigh[2] = this.outPixels[index]; index += this.nx - 1;
+      neigh[3] = this.outPixels[index];
+    }
+    else
+    {
+      int index = x - 1 + (y - 1) * this.nx;
+      neigh[0] = this.outPixels[index]; index++;
+      neigh[1] = this.outPixels[index]; index++;
+      neigh[2] = this.outPixels[index]; index += this.nx - 2;
+      neigh[3] = this.outPixels[index]; index++;
+      central = this.outPixels[index]; index++;
+      neigh[4] = this.outPixels[index]; index += this.nx - 2;
+      neigh[5] = this.outPixels[index]; index++;
+      neigh[6] = this.outPixels[index]; index++;
+      neigh[7] = this.outPixels[index];
+    }
+    return central;
+  }
+
+  private void createStackAnimation()
+  {
+    this.stackAnimation = new ImageStack(this.nx, this.ny);
+  }
+
+  private void addImageToStackAnimation(ImageWare image)
+  {
+    int size = this.nx * this.ny;
+    float[] pixels = image.getSliceFloat(0);
+    byte[] r = new byte[size];
+    byte[] g = new byte[size];
+    byte[] b = new byte[size];
+
+    for (int k = 0; k < size; k++) {
+      int v = (int)pixels[k];
+      if (v < 0)
+        v = 0;
+      else if (v > 1000000)
+        v = 1000000;
+      r[k] = this.LUTColor[0][v];
+      g[k] = this.LUTColor[1][v];
+      b[k] = this.LUTColor[2][v];
+    }
+    ColorProcessor cp = new ColorProcessor(this.nx, this.ny);
+    cp.setRGB(r, g, b);
+    this.stackAnimation.addSlice("", cp);
+  }
+
+  private void displayStackAnimation()
+  {
+    ImagePlus animation = new ImagePlus("Animation", this.stackAnimation);
+    animation.show();
+  }
+}

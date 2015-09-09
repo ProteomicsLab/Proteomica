@@ -1,0 +1,260 @@
+/*     */ package watershedflooding;
+/*     */ 
+/*     */ import ij.IJ;
+/*     */ import ij.ImagePlus;
+/*     */ import ij.WindowManager;
+/*     */ import ij.gui.GUI;
+/*     */ import imageware.Builder;
+/*     */ import imageware.ImageWare;
+/*     */ import java.awt.Color;
+/*     */ import java.awt.Font;
+/*     */ import java.awt.GridBagConstraints;
+/*     */ import java.awt.GridBagLayout;
+/*     */ import java.awt.Insets;
+/*     */ import java.awt.event.ActionEvent;
+/*     */ import java.awt.event.ActionListener;
+/*     */ import java.awt.event.ItemEvent;
+/*     */ import java.awt.event.ItemListener;
+/*     */ import java.awt.event.WindowEvent;
+/*     */ import java.awt.event.WindowListener;
+/*     */ import javax.swing.BorderFactory;
+/*     */ import javax.swing.JButton;
+/*     */ import javax.swing.JCheckBox;
+/*     */ import javax.swing.JComboBox;
+/*     */ import javax.swing.JComponent;
+/*     */ import javax.swing.JFrame;
+/*     */ import javax.swing.JLabel;
+/*     */ import javax.swing.JPanel;
+/*     */ import javax.swing.JTextArea;
+/*     */ import javax.swing.JTextField;
+/*     */ 
+/*     */ public class MainDialog extends JFrame
+/*     */   implements ActionListener, ItemListener, WindowListener
+/*     */ {
+/*  21 */   private String[] listColorObject = { "Dark objects/Bright background", "Bright objects/Dark background" };
+/*  22 */   private String[] listConnectivity = { "4-connected (fast, less precise)", "8-connected (slow, more precise)" };
+/*  23 */   private String[] listDisplay = { "Object/Background binary", "Watershed lines", "Overlaid dams", "Labelized basins", "Colorized basins", "Composite" };
+/*     */   private static final byte WSHED = 0;
+/*     */   private static final byte INIT = -1;
+/*  33 */   private int operation = 0;
+/*  34 */   private ImagePlus first = null;
+/*  35 */   private Watershed watershedOperator = null;
+/*     */ 
+/*  37 */   private GridBagLayout layout = new GridBagLayout();
+/*  38 */   private GridBagConstraints constraint = new GridBagConstraints();
+/*  39 */   private JButton bnClose = new JButton("Close");
+/*  40 */   private JButton bnSmooth = new JButton("Smooth");
+/*  41 */   private JButton bnShow = new JButton("Show");
+/*  42 */   private JButton bnWatershed = new JButton("Start Watershed");
+/*  43 */   private JButton bnHelp = new JButton("Help...");
+/*  44 */   private JTextField txtSigmaXY = new JTextField("3.0", 4);
+/*  45 */   private JTextField txtSigmaZ = new JTextField("0.0", 4);
+/*  46 */   private JTextField txtMaxLevel = new JTextField("255", 4);
+/*  47 */   private JTextField txtMinLevel = new JTextField("0", 4);
+/*  48 */   private JCheckBox chkAnimation = new JCheckBox("Create animation (slow)", null, false);
+/*  49 */   private JCheckBox chkProgress = new JCheckBox("Show progression messages", null, true);
+/*  50 */   private JComboBox cmbConnect = new JComboBox(this.listConnectivity);
+/*  51 */   private JComboBox cmbColorObject = new JComboBox(this.listColorObject);
+/*  52 */   private JComboBox cmbDisplay = new JComboBox(this.listDisplay);
+/*     */   private Processing process;
+/*     */   private ImagePlus imp;
+/*  55 */   private Font font = new Font("Arial", 0, 9);
+/*     */ 
+/*     */   public MainDialog(ImagePlus imp, Processing process)
+/*     */   {
+/*  61 */     super("Watershed");
+/*  62 */     this.imp = imp;
+/*  63 */     setTitle("Watershed [" + imp.getTitle() + "]");
+/*  64 */     this.process = process;
+/*     */ 
+/*  66 */     JTextArea txtCopyright = new JTextArea(2, 20);
+/*  67 */     txtCopyright.append("Watershed on graylevel images (http://bigwww.epfl.ch/) 02.2008\n");
+/*  68 */     txtCopyright.append("Biomedical Imaging Group (BIG), EPFL Lausanne, Switzerland.");
+/*     */ 
+/*  70 */     txtCopyright.setFont(this.font);
+/*  71 */     txtCopyright.setBorder(BorderFactory.createEtchedBorder());
+/*  72 */     txtCopyright.setForeground(new Color(0, 32, 128));
+/*  73 */     txtCopyright.setBackground(getBackground());
+/*     */ 
+/*  75 */     JPanel pnSmooth = new JPanel();
+/*  76 */     pnSmooth.setLayout(this.layout);
+/*  77 */     pnSmooth.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), "Gaussian blurring"));
+/*  78 */     addComponent(pnSmooth, 0, 0, 1, 1, 4, new JLabel("Radius"));
+/*  79 */     addComponent(pnSmooth, 0, 1, 1, 1, 4, this.txtSigmaXY);
+/*  80 */     addComponent(pnSmooth, 0, 2, 1, 1, 4, this.bnSmooth);
+/*     */ 
+/*  88 */     JPanel pnWatershed = new JPanel();
+/*  89 */     pnWatershed.setLayout(this.layout);
+/*  90 */     pnWatershed.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), "Watershed"));
+/*  91 */     addComponent(pnWatershed, 0, 0, 4, 1, 4, this.cmbColorObject);
+/*  92 */     addComponent(pnWatershed, 1, 0, 4, 1, 4, this.cmbConnect);
+/*  93 */     addComponent(pnWatershed, 2, 0, 1, 1, 4, new JLabel("Min/Max "));
+/*  94 */     addComponent(pnWatershed, 2, 1, 1, 1, 4, this.txtMinLevel);
+/*  95 */     addComponent(pnWatershed, 2, 2, 1, 1, 4, this.txtMaxLevel);
+/*  96 */     addComponent(pnWatershed, 2, 3, 1, 1, 4, new JLabel("Level"));
+/*  97 */     addComponent(pnWatershed, 4, 0, 4, 1, 4, this.chkProgress);
+/*  98 */     addComponent(pnWatershed, 5, 0, 4, 2, 4, this.chkAnimation);
+/*  99 */     if (imp.getStackSize() > 1) {
+/* 100 */       this.chkAnimation.setSelected(false);
+/* 101 */       this.chkAnimation.setEnabled(false);
+/*     */     }
+/*     */ 
+/* 104 */     JPanel pnShow = new JPanel();
+/* 105 */     pnShow.setLayout(this.layout);
+/* 106 */     pnShow.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), "Display"));
+/* 107 */     addComponent(pnShow, 0, 0, 1, 2, 4, this.cmbDisplay);
+/* 108 */     addComponent(pnShow, 0, 1, 1, 2, 4, this.bnShow);
+/*     */ 
+/* 110 */     JPanel pnButtons = new JPanel();
+/* 111 */     pnButtons.setLayout(this.layout);
+/* 112 */     addComponent(pnButtons, 0, 0, 1, 1, 4, this.bnHelp);
+/* 113 */     addComponent(pnButtons, 0, 1, 1, 1, 4, this.bnClose);
+/* 114 */     addComponent(pnButtons, 0, 2, 1, 1, 4, this.bnWatershed);
+/*     */ 
+/* 116 */     JPanel pnMain = new JPanel();
+/* 117 */     pnMain.setLayout(this.layout);
+/* 118 */     addComponent(pnMain, 0, 0, 1, 1, 4, txtCopyright);
+/* 119 */     addComponent(pnMain, 1, 0, 1, 1, 4, pnSmooth);
+/* 120 */     addComponent(pnMain, 2, 0, 1, 1, 4, pnWatershed);
+/* 121 */     addComponent(pnMain, 3, 0, 1, 1, 4, pnShow);
+/* 122 */     addComponent(pnMain, 4, 0, 1, 1, 4, pnButtons);
+/*     */ 
+/* 125 */     this.bnClose.addActionListener(this);
+/* 126 */     this.bnSmooth.addActionListener(this);
+/* 127 */     this.bnShow.addActionListener(this);
+/* 128 */     this.bnWatershed.addActionListener(this);
+/* 129 */     this.bnHelp.addActionListener(this);
+/* 130 */     addWindowListener(this);
+/*     */ 
+/* 133 */     JPanel pnMain1 = new JPanel();
+/* 134 */     pnMain1.setLayout(this.layout);
+/* 135 */     addComponent(pnMain1, 0, 0, 1, 1, 9, pnMain);
+/* 136 */     add(pnMain1);
+/* 137 */     pack();
+/* 138 */     setResizable(false);
+/* 139 */     GUI.center(this);
+/* 140 */     setVisible(true);
+/*     */   }
+/*     */ 
+/*     */   private void addComponent(JPanel pn, int row, int col, int width, int height, int space, JComponent comp)
+/*     */   {
+/* 147 */     this.constraint.gridx = col;
+/* 148 */     this.constraint.gridy = row;
+/* 149 */     this.constraint.gridwidth = width;
+/* 150 */     this.constraint.gridheight = height;
+/* 151 */     this.constraint.anchor = 18;
+/* 152 */     this.constraint.insets = new Insets(space, space, space, space);
+/* 153 */     this.constraint.weightx = (IJ.isMacintosh() ? 90.0D : 100.0D);
+/* 154 */     this.constraint.fill = 2;
+/* 155 */     this.layout.setConstraints(comp, this.constraint);
+/* 156 */     pn.add(comp);
+/*     */   }
+/*     */ 
+/*     */   public synchronized void actionPerformed(ActionEvent e)
+/*     */   {
+/* 163 */     if (e.getSource() == this.bnClose) {
+/* 164 */       dispose();
+/*     */     }
+/*     */     else
+/*     */     {
+/*     */       Help help;
+/* 166 */       if (e.getSource() == this.bnHelp) {
+/* 167 */         help = new Help();
+/*     */       }
+/* 169 */       else if (e.getSource() == this.bnShow) {
+/* 170 */         int[] display = new int[1];
+/* 171 */         display[0] = this.cmbDisplay.getSelectedIndex();
+/* 172 */         this.process.paramsDisplay(display);
+/* 173 */         this.process.start("display");
+/*     */       }
+/* 175 */       else if (e.getSource() == this.bnSmooth) {
+/* 176 */         double sigmaXY = getDoubleValue(this.txtSigmaXY, 0.0D, 3.0D, 1000.0D);
+/* 177 */         double sigmaZ = getDoubleValue(this.txtSigmaZ, 0.0D, 3.0D, 1000.0D);
+/* 178 */         this.process.paramsSmooth(sigmaXY, sigmaZ);
+/* 179 */         this.process.start(this.bnSmooth.getText());
+/*     */       }
+/* 181 */       else if (e.getSource() == this.bnWatershed) {
+/* 182 */         boolean animation = this.chkAnimation.isSelected();
+/* 183 */         boolean invert = this.cmbColorObject.getSelectedIndex() == 1;
+/* 184 */         boolean conn4 = this.cmbConnect.getSelectedIndex() == 0;
+/* 185 */         int maxLevel = (int)getDoubleValue(this.txtMaxLevel, 0.0D, 255.0D, 255.0D);
+/* 186 */         int minLevel = (int)getDoubleValue(this.txtMinLevel, 0.0D, 0.0D, 255.0D);
+/* 187 */         ImagePlus imp = WindowManager.getCurrentImage();
+/* 188 */         if (imp == null) {
+/* 189 */           IJ.error("Image required.");
+/* 190 */           return;
+/*     */         }
+/* 192 */         if (imp.getType() != 0) {
+/* 193 */           IJ.error("8-bit image required.");
+/* 194 */           return;
+/*     */         }
+/* 196 */         ImageWare original = Builder.wrap(imp);
+/* 197 */         ImageWare input = original.duplicate();
+/* 198 */         if (invert) {
+/* 199 */           input.invert();
+/*     */         }
+/* 201 */         int[] display = new int[1];
+/* 202 */         display[0] = this.cmbDisplay.getSelectedIndex();
+/* 203 */         this.process.paramsDisplay(display);
+/* 204 */         this.process.paramsWatershed(input, this.bnWatershed, animation, conn4, this.chkProgress.isSelected(), minLevel, maxLevel);
+/* 205 */         this.process.start(this.bnWatershed.getText());
+/*     */       }
+/*     */     }
+/* 208 */     notify();
+/*     */   }
+/*     */ 
+/*     */   public void windowActivated(WindowEvent e)
+/*     */   {
+/*     */   }
+/*     */ 
+/*     */   public void windowClosing(WindowEvent e)
+/*     */   {
+/* 222 */     dispose();
+/*     */   }
+/*     */ 
+/*     */   public void windowClosed(WindowEvent e)
+/*     */   {
+/*     */   }
+/*     */ 
+/*     */   public void windowDeactivated(WindowEvent e)
+/*     */   {
+/*     */   }
+/*     */ 
+/*     */   public void windowDeiconified(WindowEvent e)
+/*     */   {
+/*     */   }
+/*     */ 
+/*     */   public void windowIconified(WindowEvent e)
+/*     */   {
+/*     */   }
+/*     */ 
+/*     */   public void windowOpened(WindowEvent e)
+/*     */   {
+/*     */   }
+/*     */ 
+/*     */   public synchronized void itemStateChanged(ItemEvent e)
+/*     */   {
+/*     */   }
+/*     */ 
+/*     */   private double getDoubleValue(JTextField text, double mini, double defaut, double maxi)
+/*     */   {
+/*     */     try
+/*     */     {
+/* 267 */       double d = new Double(text.getText()).doubleValue();
+/* 268 */       if (d < mini) text.setText("" + mini);
+/* 269 */       if (d > maxi) text.setText("" + maxi);
+/*     */     }
+/*     */     catch (Exception e)
+/*     */     {
+/* 273 */       if ((e instanceof NumberFormatException))
+/* 274 */         text.setText("" + defaut);
+/*     */     }
+/* 276 */     double d = new Double(text.getText()).doubleValue();
+/* 277 */     return d;
+/*     */   }
+/*     */ }
+
+/* Location:           C:\Users\BHUSHANNK\Downloads\Watershed_\
+ * Qualified Name:     watershedflooding.MainDialog
+ * JD-Core Version:    0.6.2
+ */

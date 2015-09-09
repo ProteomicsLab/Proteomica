@@ -1,0 +1,138 @@
+/*     */ package imageware;
+/*     */ 
+/*     */ import ij.ImagePlus;
+/*     */ import ij.ImageStack;
+/*     */ import ij.gui.ImageCanvas;
+/*     */ import ij.gui.ImageWindow;
+/*     */ import ij.process.ColorProcessor;
+/*     */ 
+/*     */ public class Display
+/*     */ {
+/*     */   public static void show(String title, ImageWare ds)
+/*     */   {
+/*  27 */     new ImagePlus(title, ds.buildImageStack()).show();
+/*     */   }
+/*     */ 
+/*     */   public static void showColor(String title, ImageWare red, ImageWare green, ImageWare blue)
+/*     */   {
+/*  39 */     new ImagePlus(title, buildColor(red, green, blue)).show();
+/*     */   }
+/*     */ 
+/*     */   public static void show(String title, ImageWare ds, double magnification)
+/*     */   {
+/*  50 */     ImagePlus imp = new ImagePlus(title, ds.buildImageStack());
+/*  51 */     imp.show();
+/*  52 */     ImageWindow win = imp.getWindow();
+/*  53 */     ImageCanvas canvas = win.getCanvas();
+/*  54 */     canvas.setMagnification(magnification);
+/*  55 */     canvas.setDrawingSize((int)Math.ceil(ds.getWidth() * magnification), (int)Math.ceil(ds.getHeight() * magnification));
+/*     */ 
+/*  58 */     win.pack();
+/*  59 */     imp.updateAndRepaintWindow();
+/*     */   }
+/*     */ 
+/*     */   public static void showColor(String title, ImageWare red, ImageWare green, ImageWare blue, double magnification)
+/*     */   {
+/*  72 */     ImagePlus imp = new ImagePlus(title, buildColor(red, green, blue));
+/*  73 */     imp.show();
+/*  74 */     ImageWindow win = imp.getWindow();
+/*  75 */     ImageCanvas canvas = win.getCanvas();
+/*  76 */     canvas.setMagnification(magnification);
+/*  77 */     canvas.setDrawingSize((int)Math.ceil(red.getWidth() * magnification), (int)Math.ceil(red.getHeight() * magnification));
+/*     */ 
+/*  80 */     win.pack();
+/*  81 */     imp.updateAndRepaintWindow();
+/*     */   }
+/*     */ 
+/*     */   private static ImageStack buildColor(ImageWare red, ImageWare green, ImageWare blue)
+/*     */   {
+/*  87 */     if (!red.isSameSize(green)) {
+/*  88 */       throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnable to create a ImageStack the channel are not the same size.\n[" + red.getSizeX() + "," + red.getSizeY() + "," + red.getSizeZ() + "] != " + "[" + green.getSizeX() + "," + green.getSizeY() + "," + green.getSizeZ() + "].\n" + "-------------------------------------------------------\n");
+/*     */     }
+/*     */ 
+/*  97 */     if (!red.isSameSize(blue)) {
+/*  98 */       throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnable to create a ImageStack the channel are not the same size.\n[" + red.getSizeX() + "," + red.getSizeY() + "," + red.getSizeZ() + "] != " + "[" + blue.getSizeX() + "," + blue.getSizeY() + "," + blue.getSizeZ() + "].\n" + "-------------------------------------------------------\n");
+/*     */     }
+/*     */ 
+/* 107 */     int nx = red.getSizeX();
+/* 108 */     int ny = red.getSizeY();
+/* 109 */     int nz = red.getSizeZ();
+/* 110 */     int nxy = nx * ny;
+/* 111 */     ImageStack imagestack = new ImageStack(nx, ny);
+/*     */ 
+/* 113 */     byte[] r = new byte[nxy];
+/* 114 */     byte[] g = new byte[nxy];
+/* 115 */     byte[] b = new byte[nxy];
+/* 116 */     for (int z = 0; z < nz; z++) {
+/* 117 */       ColorProcessor cp = new ColorProcessor(nx, ny);
+/* 118 */       switch (red.getType()) {
+/*     */       case 4:
+/* 120 */         double[] dpixred = red.getSliceDouble(z);
+/* 121 */         for (int k = 0; k < nxy; k++)
+/* 122 */           r[k] = ((byte)(int)dpixred[k]);
+/* 123 */         break;
+/*     */       case 3:
+/* 125 */         float[] fpixred = red.getSliceFloat(z);
+/* 126 */         for (int k = 0; k < nxy; k++)
+/* 127 */           r[k] = ((byte)(int)fpixred[k]);
+/* 128 */         break;
+/*     */       case 2:
+/* 130 */         short[] spixred = red.getSliceShort(z);
+/* 131 */         for (int k = 0; k < nxy; k++)
+/* 132 */           r[k] = ((byte)spixred[k]);
+/* 133 */         break;
+/*     */       case 1:
+/* 135 */         r = red.getSliceByte(z);
+/*     */       }
+/*     */ 
+/* 138 */       switch (green.getType()) {
+/*     */       case 4:
+/* 140 */         double[] dpixgreen = green.getSliceDouble(z);
+/* 141 */         for (int k = 0; k < nxy; k++)
+/* 142 */           g[k] = ((byte)(int)dpixgreen[k]);
+/* 143 */         break;
+/*     */       case 3:
+/* 145 */         float[] fpixgreen = green.getSliceFloat(z);
+/* 146 */         for (int k = 0; k < nxy; k++)
+/* 147 */           g[k] = ((byte)(int)fpixgreen[k]);
+/* 148 */         break;
+/*     */       case 2:
+/* 150 */         short[] spixgreen = green.getSliceShort(z);
+/* 151 */         for (int k = 0; k < nxy; k++)
+/* 152 */           g[k] = ((byte)spixgreen[k]);
+/* 153 */         break;
+/*     */       case 1:
+/* 155 */         g = green.getSliceByte(z);
+/*     */       }
+/*     */ 
+/* 158 */       switch (blue.getType()) {
+/*     */       case 4:
+/* 160 */         double[] dpixblue = blue.getSliceDouble(z);
+/* 161 */         for (int k = 0; k < nxy; k++)
+/* 162 */           b[k] = ((byte)(int)dpixblue[k]);
+/* 163 */         break;
+/*     */       case 3:
+/* 165 */         float[] fpixblue = blue.getSliceFloat(z);
+/* 166 */         for (int k = 0; k < nxy; k++)
+/* 167 */           b[k] = ((byte)(int)fpixblue[k]);
+/* 168 */         break;
+/*     */       case 2:
+/* 170 */         short[] spixblue = blue.getSliceShort(z);
+/* 171 */         for (int k = 0; k < nxy; k++)
+/* 172 */           b[k] = ((byte)spixblue[k]);
+/* 173 */         break;
+/*     */       case 1:
+/* 175 */         b = blue.getSliceByte(z);
+/*     */       }
+/*     */ 
+/* 178 */       cp.setRGB(r, g, b);
+/* 179 */       imagestack.addSlice("" + z, cp);
+/*     */     }
+/* 181 */     return imagestack;
+/*     */   }
+/*     */ }
+
+/* Location:           C:\Users\BHUSHANNK\Downloads\Watershed_\
+ * Qualified Name:     imageware.Display
+ * JD-Core Version:    0.6.2
+ */

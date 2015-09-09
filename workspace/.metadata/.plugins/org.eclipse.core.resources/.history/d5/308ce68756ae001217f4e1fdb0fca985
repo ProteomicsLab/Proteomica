@@ -1,0 +1,9 @@
+package com.mst.stats;
+
+public class Annova {
+
+	public static void main(String args){
+		
+		
+	}
+}

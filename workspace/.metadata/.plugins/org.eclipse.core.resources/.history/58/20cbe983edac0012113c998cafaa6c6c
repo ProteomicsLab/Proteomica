@@ -1,0 +1,106 @@
+import ij.IJ;
+import ij.ImagePlus;
+import ij.Macro;
+import ij.WindowManager;
+import ij.plugin.Converter;
+import imageware.Builder;
+import imageware.ImageWare;
+import java.util.StringTokenizer;
+import watershedflooding.MainDialog;
+import watershedflooding.Processing;
+
+public class WatershedConstructions
+{
+  public WatershedConstructions()
+  {
+    if (IJ.versionLessThan("1.21a")) {
+      IJ.error("The version of ImageJ should be at least 1.21a");
+      return;
+    }
+    ImagePlus imp = WindowManager.getCurrentImage();
+    if (imp == null) {
+      IJ.showMessage("Image required.");
+      return;
+    }
+    if (imp.getType() != 0) {
+      IJ.showMessage("Image 8-bits required.");
+      Converter Bit8Converter = new Converter()
+      return;
+    }
+
+    String options = Macro.getOptions();
+    MainDialog dlg;
+    if (options != null)
+    {
+      ImageWare original = Builder.wrap(imp);
+      ImageWare image = original.duplicate();
+
+      String blurringCommand = Macro.getValue(options, "blurring", "");
+      if (!blurringCommand.equals("")) {
+        String[] args = split(blurringCommand);
+        if (args.length != 1) {
+          IJ.error("The arguments of the blurring command are not valid. Correct example: blurring='3.0'");
+          return;
+        }
+        double sigma = new Double(args[0]).doubleValue();
+        if (sigma > 0.0D) {
+          IJ.showStatus("Gaussian blurring at " + sigma);
+          image.smoothGaussian(sigma, sigma, 0.0D);
+        }
+
+      }
+
+      String watershedCommand = Macro.getValue(options, "watershed", "");
+      if (!watershedCommand.equals("")) {
+        String[] args = split(watershedCommand);
+        if (args.length != 6) {
+          IJ.error("The arguments of the watershed command are not valid. Correct example: watershed='0 0 0 255 1 1'");
+          return;
+        }
+        boolean conn4 = args[1].equals("0");
+        int minLevel = new Integer(args[2]).intValue();
+        int maxLevel = new Integer(args[3]).intValue();
+        boolean progression = args[4].equals("1");
+        boolean animation = args[5].equals("1");
+        if (args[0].equals("1")) {
+          IJ.showStatus("Invert");
+          image.invert();
+        }
+        IJ.showStatus("Watershed from " + minLevel + " to " + maxLevel);
+        Processing process = new Processing(imp);
+        process.paramsWatershed(image, null, animation, conn4, progression, minLevel, maxLevel);
+        process.start("Start Watershed");
+
+        String displayCommand = Macro.getValue(options, "display", "");
+        if (!displayCommand.equals("")) {
+          String[] argsDisplay = split(displayCommand);
+          if (argsDisplay.length > 0) {
+            int[] display = new int[argsDisplay.length];
+            for (int k = 0; k < argsDisplay.length; k++) {
+              display[k] = new Integer(argsDisplay[k]).intValue();
+              if ((display[k] > 6) || (display[k] < 0)) {
+                IJ.error("The 'display[" + k + "]' argument should be in the range [0..6]'");
+                return;
+              }
+            }
+            process.paramsDisplay(display);
+          }
+        }
+      }
+    }
+    else {
+      Processing ws = new Processing(imp);
+      dlg = new MainDialog(imp, ws);
+    }
+  }
+
+  private String[] split(String s)
+  {
+    StringTokenizer t = new StringTokenizer(s);
+    String[] items = new String[t.countTokens()];
+    for (int k = 0; k < items.length; k++) {
+      items[k] = t.nextToken();
+    }
+    return items;
+  }
+}

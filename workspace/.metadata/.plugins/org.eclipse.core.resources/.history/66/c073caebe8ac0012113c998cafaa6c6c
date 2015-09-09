@@ -1,0 +1,1905 @@
+/*      */ package imageware;
+/*      */ 
+/*      */ import ij.ImageStack;
+/*      */ import ij.process.ByteProcessor;
+/*      */ import ij.process.ColorProcessor;
+/*      */ import ij.process.FloatProcessor;
+/*      */ import ij.process.ImageProcessor;
+/*      */ import ij.process.ShortProcessor;
+/*      */ import java.awt.Image;
+/*      */ import java.awt.image.ImageObserver;
+/*      */ import java.awt.image.PixelGrabber;
+/*      */ 
+/*      */ public class ShortBuffer
+/*      */   implements Buffer
+/*      */ {
+/*   22 */   protected Object[] data = null;
+/*   23 */   protected int nx = 0;
+/*   24 */   protected int ny = 0;
+/*   25 */   protected int nz = 0;
+/*   26 */   protected int nxy = 0;
+/*      */ 
+/*      */   protected ShortBuffer(int nx, int ny, int nz)
+/*      */   {
+/*   36 */     this.nx = nx;
+/*   37 */     this.ny = ny;
+/*   38 */     this.nz = nz;
+/*   39 */     if ((nx <= 0) || (ny <= 0) || (nz <= 0))
+/*   40 */       throw_constructor(nx, ny, nz);
+/*   41 */     allocate();
+/*      */   }
+/*      */ 
+/*      */   protected ShortBuffer(Image image, int mode)
+/*      */   {
+/*   50 */     if (image == null) {
+/*   51 */       throw_constructor();
+/*      */     }
+/*   53 */     ImageObserver observer = null;
+/*   54 */     this.nx = image.getWidth(observer);
+/*   55 */     this.ny = image.getHeight(observer);
+/*   56 */     this.nz = 1;
+/*   57 */     this.nxy = (this.nx * this.ny);
+/*   58 */     byte[] pixels = new byte[this.nxy];
+/*   59 */     PixelGrabber pg = new PixelGrabber(image, 0, 0, this.nx, this.ny, false);
+/*      */     try {
+/*   61 */       pg.grabPixels();
+/*   62 */       pixels = (byte[])pg.getPixels();
+/*      */     }
+/*      */     catch (Exception e) {
+/*   65 */       throw_constructor();
+/*      */     }
+/*   67 */     allocate();
+/*   68 */     for (int k = 0; k < this.nxy; k++)
+/*   69 */       ((short[])this.data[0])[k] = ((short)(pixels[k] & 0xFF));
+/*      */   }
+/*      */ 
+/*      */   protected ShortBuffer(ImageStack stack, int mode)
+/*      */   {
+/*   83 */     if (stack == null) {
+/*   84 */       throw_constructor();
+/*      */     }
+/*   86 */     this.nx = stack.getWidth();
+/*   87 */     this.ny = stack.getHeight();
+/*   88 */     this.nz = stack.getSize();
+/*   89 */     this.nxy = (this.nx * this.ny);
+/*   90 */     switch (mode) {
+/*      */     case 2:
+/*   92 */       this.data = stack.getImageArray();
+/*   93 */       break;
+/*      */     case 1:
+/*   95 */       allocate();
+/*   96 */       ImageProcessor ip = stack.getProcessor(1);
+/*   97 */       if ((ip instanceof ByteProcessor)) {
+/*   98 */         Object[] vol = stack.getImageArray();
+/*   99 */         for (int z = 0; z < this.nz; z++) {
+/*  100 */           byte[] slice = (byte[])vol[z];
+/*  101 */           for (int k = 0; k < this.nxy; k++) {
+/*  102 */             ((short[])this.data[z])[k] = ((short)(slice[k] & 0xFF));
+/*      */           }
+/*      */         }
+/*      */       }
+/*  106 */       else if ((ip instanceof ShortProcessor)) {
+/*  107 */         Object[] vol = stack.getImageArray();
+/*  108 */         for (int z = 0; z < this.nz; z++) {
+/*  109 */           short[] slice = (short[])vol[z];
+/*  110 */           for (int k = 0; k < this.nxy; k++) {
+/*  111 */             ((short[])this.data[z])[k] = ((short)(slice[k] & 0xFFFF));
+/*      */           }
+/*      */         }
+/*      */       }
+/*  115 */       else if ((ip instanceof FloatProcessor)) {
+/*  116 */         Object[] vol = stack.getImageArray();
+/*  117 */         for (int z = 0; z < this.nz; z++) {
+/*  118 */           float[] slice = (float[])vol[z];
+/*  119 */           for (int k = 0; k < this.nxy; k++) {
+/*  120 */             ((short[])this.data[z])[k] = ((short)(int)slice[k]);
+/*      */           }
+/*      */         }
+/*      */       }
+/*  124 */       else if ((ip instanceof ColorProcessor))
+/*      */       {
+/*  129 */         for (int z = 0; z < this.nz; z++) {
+/*  130 */           ColorProcessor cp = (ColorProcessor)stack.getProcessor(z + 1);
+/*  131 */           int[] pixels = (int[])cp.getPixels();
+/*  132 */           for (int k = 0; k < this.nxy; k++) {
+/*  133 */             int c = pixels[k];
+/*  134 */             double r = (c & 0xFF0000) >> 16;
+/*  135 */             double g = (c & 0xFF00) >> 8;
+/*  136 */             double b = c & 0xFF;
+/*  137 */             ((short[])this.data[z])[k] = ((short)(int)((r + g + b) / 3.0D));
+/*      */           }
+/*      */         }
+/*      */       }
+/*      */       else {
+/*  142 */         throw_constructor();
+/*      */       }
+/*  144 */       break;
+/*      */     default:
+/*  146 */       throw_constructor();
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   protected ShortBuffer(ImageStack stack, byte channel)
+/*      */   {
+/*  163 */     if (stack == null) {
+/*  164 */       throw_constructor();
+/*      */     }
+/*  166 */     this.nx = stack.getWidth();
+/*  167 */     this.ny = stack.getHeight();
+/*  168 */     this.nz = stack.getSize();
+/*  169 */     this.nxy = (this.nx * this.ny);
+/*  170 */     allocate();
+/*  171 */     ImageProcessor ip = stack.getProcessor(1);
+/*  172 */     if ((ip instanceof ByteProcessor)) {
+/*  173 */       Object[] vol = stack.getImageArray();
+/*  174 */       for (int z = 0; z < this.nz; z++) {
+/*  175 */         byte[] slice = (byte[])vol[z];
+/*  176 */         for (int k = 0; k < this.nxy; k++) {
+/*  177 */           ((short[])this.data[z])[k] = ((short)(slice[k] & 0xFF));
+/*      */         }
+/*      */       }
+/*      */     }
+/*  181 */     else if ((ip instanceof ShortProcessor)) {
+/*  182 */       Object[] vol = stack.getImageArray();
+/*  183 */       for (int z = 0; z < this.nz; z++) {
+/*  184 */         short[] slice = (short[])vol[z];
+/*  185 */         for (int k = 0; k < this.nxy; k++) {
+/*  186 */           ((short[])this.data[z])[k] = ((short)(slice[k] & 0xFFFF));
+/*      */         }
+/*      */       }
+/*      */     }
+/*  190 */     else if ((ip instanceof FloatProcessor)) {
+/*  191 */       Object[] vol = stack.getImageArray();
+/*  192 */       for (int z = 0; z < this.nz; z++) {
+/*  193 */         float[] slice = (float[])vol[z];
+/*  194 */         for (int k = 0; k < this.nxy; k++) {
+/*  195 */           ((short[])this.data[z])[k] = ((short)(int)slice[k]);
+/*      */         }
+/*      */       }
+/*      */     }
+/*  199 */     else if ((ip instanceof ColorProcessor))
+/*      */     {
+/*  202 */       for (int z = 0; z < this.nz; z++) {
+/*  203 */         ColorProcessor cp = (ColorProcessor)stack.getProcessor(z + 1);
+/*  204 */         int[] pixels = (int[])cp.getPixels();
+/*  205 */         switch (channel) {
+/*      */         case 0:
+/*  207 */           for (int k = 0; k < this.nxy; k++) {
+/*  208 */             ((short[])this.data[z])[k] = ((short)((pixels[k] & 0xFF0000) >> 16));
+/*      */           }
+/*  210 */           break;
+/*      */         case 1:
+/*  212 */           for (int k = 0; k < this.nxy; k++) {
+/*  213 */             ((short[])this.data[z])[k] = ((short)((pixels[k] & 0xFF00) >> 8));
+/*      */           }
+/*  215 */           break;
+/*      */         case 2:
+/*  217 */           for (int k = 0; k < this.nxy; k++) {
+/*  218 */             ((short[])this.data[z])[k] = ((short)(pixels[k] & 0xFF));
+/*      */           }
+/*  220 */           break;
+/*      */         default:
+/*  222 */           throw_constructor();
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     else {
+/*  227 */       throw_constructor();
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   protected ShortBuffer(byte[] array, int mode)
+/*      */   {
+/*  238 */     if (array == null) {
+/*  239 */       throw_constructor();
+/*      */     }
+/*  241 */     this.nx = array.length;
+/*  242 */     this.ny = 1;
+/*  243 */     this.nz = 1;
+/*  244 */     allocate();
+/*  245 */     putX(0, 0, 0, array);
+/*      */   }
+/*      */ 
+/*      */   protected ShortBuffer(byte[][] array, int mode)
+/*      */   {
+/*  254 */     if (array == null) {
+/*  255 */       throw_constructor();
+/*      */     }
+/*  257 */     this.nx = array.length;
+/*  258 */     this.ny = array[0].length;
+/*  259 */     this.nz = 1;
+/*  260 */     allocate();
+/*  261 */     putXY(0, 0, 0, array);
+/*      */   }
+/*      */ 
+/*      */   protected ShortBuffer(byte[][][] array, int mode)
+/*      */   {
+/*  270 */     if (array == null) {
+/*  271 */       throw_constructor();
+/*      */     }
+/*  273 */     this.nx = array.length;
+/*  274 */     this.ny = array[0].length;
+/*  275 */     this.nz = array[0][0].length;
+/*  276 */     allocate();
+/*  277 */     putXYZ(0, 0, 0, array);
+/*      */   }
+/*      */ 
+/*      */   protected ShortBuffer(short[] array, int mode)
+/*      */   {
+/*  286 */     if (array == null) {
+/*  287 */       throw_constructor();
+/*      */     }
+/*  289 */     this.nx = array.length;
+/*  290 */     this.ny = 1;
+/*  291 */     this.nz = 1;
+/*  292 */     allocate();
+/*  293 */     putX(0, 0, 0, array);
+/*      */   }
+/*      */ 
+/*      */   protected ShortBuffer(short[][] array, int mode)
+/*      */   {
+/*  302 */     if (array == null) {
+/*  303 */       throw_constructor();
+/*      */     }
+/*  305 */     this.nx = array.length;
+/*  306 */     this.ny = array[0].length;
+/*  307 */     this.nz = 1;
+/*  308 */     allocate();
+/*  309 */     putXY(0, 0, 0, array);
+/*      */   }
+/*      */ 
+/*      */   protected ShortBuffer(short[][][] array, int mode)
+/*      */   {
+/*  318 */     if (array == null) {
+/*  319 */       throw_constructor();
+/*      */     }
+/*  321 */     this.nx = array.length;
+/*  322 */     this.ny = array[0].length;
+/*  323 */     this.nz = array[0][0].length;
+/*  324 */     allocate();
+/*  325 */     putXYZ(0, 0, 0, array);
+/*      */   }
+/*      */ 
+/*      */   protected ShortBuffer(float[] array, int mode)
+/*      */   {
+/*  334 */     if (array == null) {
+/*  335 */       throw_constructor();
+/*      */     }
+/*  337 */     this.nx = array.length;
+/*  338 */     this.ny = 1;
+/*  339 */     this.nz = 1;
+/*  340 */     allocate();
+/*  341 */     putX(0, 0, 0, array);
+/*      */   }
+/*      */ 
+/*      */   protected ShortBuffer(float[][] array, int mode)
+/*      */   {
+/*  350 */     if (array == null) {
+/*  351 */       throw_constructor();
+/*      */     }
+/*  353 */     this.nx = array.length;
+/*  354 */     this.ny = array[0].length;
+/*  355 */     this.nz = 1;
+/*  356 */     allocate();
+/*  357 */     putXY(0, 0, 0, array);
+/*      */   }
+/*      */ 
+/*      */   protected ShortBuffer(float[][][] array, int mode)
+/*      */   {
+/*  366 */     if (array == null) {
+/*  367 */       throw_constructor();
+/*      */     }
+/*  369 */     this.nx = array.length;
+/*  370 */     this.ny = array[0].length;
+/*  371 */     this.nz = array[0][0].length;
+/*  372 */     allocate();
+/*  373 */     putXYZ(0, 0, 0, array);
+/*      */   }
+/*      */ 
+/*      */   protected ShortBuffer(double[] array, int mode)
+/*      */   {
+/*  382 */     if (array == null) {
+/*  383 */       throw_constructor();
+/*      */     }
+/*  385 */     this.nx = array.length;
+/*  386 */     this.ny = 1;
+/*  387 */     this.nz = 1;
+/*  388 */     allocate();
+/*  389 */     putX(0, 0, 0, array);
+/*      */   }
+/*      */ 
+/*      */   protected ShortBuffer(double[][] array, int mode)
+/*      */   {
+/*  398 */     if (array == null) {
+/*  399 */       throw_constructor();
+/*      */     }
+/*  401 */     this.nx = array.length;
+/*  402 */     this.ny = array[0].length;
+/*  403 */     this.nz = 1;
+/*  404 */     allocate();
+/*  405 */     putXY(0, 0, 0, array);
+/*      */   }
+/*      */ 
+/*      */   protected ShortBuffer(double[][][] array, int mode)
+/*      */   {
+/*  414 */     if (array == null) {
+/*  415 */       throw_constructor();
+/*      */     }
+/*  417 */     this.nx = array.length;
+/*  418 */     this.ny = array[0].length;
+/*  419 */     this.nz = array[0][0].length;
+/*  420 */     allocate();
+/*  421 */     putXYZ(0, 0, 0, array);
+/*      */   }
+/*      */ 
+/*      */   public int getType()
+/*      */   {
+/*  430 */     return 2;
+/*      */   }
+/*      */ 
+/*      */   public String getTypeToString()
+/*      */   {
+/*  444 */     return "Short";
+/*      */   }
+/*      */ 
+/*      */   public int getDimension()
+/*      */   {
+/*  457 */     int dims = 0;
+/*  458 */     dims += (this.nx > 1 ? 1 : 0);
+/*  459 */     dims += (this.ny > 1 ? 1 : 0);
+/*  460 */     dims += (this.nz > 1 ? 1 : 0);
+/*  461 */     return dims;
+/*      */   }
+/*      */ 
+/*      */   public int[] getSize()
+/*      */   {
+/*  470 */     int[] size = { this.nx, this.ny, this.nz };
+/*  471 */     return size;
+/*      */   }
+/*      */ 
+/*      */   public int getSizeX()
+/*      */   {
+/*  480 */     return this.nx;
+/*      */   }
+/*      */ 
+/*      */   public int getSizeY()
+/*      */   {
+/*  489 */     return this.ny;
+/*      */   }
+/*      */ 
+/*      */   public int getSizeZ()
+/*      */   {
+/*  498 */     return this.nz;
+/*      */   }
+/*      */ 
+/*      */   public int getWidth()
+/*      */   {
+/*  507 */     return this.nx;
+/*      */   }
+/*      */ 
+/*      */   public int getHeight()
+/*      */   {
+/*  516 */     return this.ny;
+/*      */   }
+/*      */ 
+/*      */   public int getDepth()
+/*      */   {
+/*  525 */     return this.nz;
+/*      */   }
+/*      */ 
+/*      */   public int getTotalSize()
+/*      */   {
+/*  534 */     return this.nxy * this.nz;
+/*      */   }
+/*      */ 
+/*      */   public boolean isSameSize(ImageWare imageware)
+/*      */   {
+/*  545 */     if (this.nx != imageware.getSizeX())
+/*  546 */       return false;
+/*  547 */     if (this.ny != imageware.getSizeY())
+/*  548 */       return false;
+/*  549 */     if (this.nz != imageware.getSizeZ())
+/*  550 */       return false;
+/*  551 */     return true;
+/*      */   }
+/*      */ 
+/*      */   public void putX(int x, int y, int z, ImageWare buffer)
+/*      */   {
+/*  570 */     int bnx = buffer.getSizeX();
+/*  571 */     double[] buf = new double[bnx];
+/*  572 */     buffer.getX(0, 0, 0, buf);
+/*  573 */     putX(x, y, z, buf);
+/*      */   }
+/*      */ 
+/*      */   public void putY(int x, int y, int z, ImageWare buffer)
+/*      */   {
+/*  586 */     int bny = buffer.getSizeY();
+/*  587 */     double[] buf = new double[bny];
+/*  588 */     buffer.getY(0, 0, 0, buf);
+/*  589 */     putY(x, y, z, buf);
+/*      */   }
+/*      */ 
+/*      */   public void putZ(int x, int y, int z, ImageWare buffer)
+/*      */   {
+/*  602 */     int bnz = buffer.getSizeZ();
+/*  603 */     double[] buf = new double[bnz];
+/*  604 */     buffer.getZ(0, 0, 0, buf);
+/*  605 */     putZ(x, y, z, buf);
+/*      */   }
+/*      */ 
+/*      */   public void putXY(int x, int y, int z, ImageWare buffer)
+/*      */   {
+/*  618 */     int bnx = buffer.getSizeX();
+/*  619 */     int bny = buffer.getSizeY();
+/*  620 */     double[][] buf = new double[bnx][bny];
+/*  621 */     buffer.getXY(0, 0, 0, buf);
+/*  622 */     putXY(x, y, z, buf);
+/*      */   }
+/*      */ 
+/*      */   public void putXZ(int x, int y, int z, ImageWare buffer)
+/*      */   {
+/*  635 */     int bnx = buffer.getSizeX();
+/*  636 */     int bnz = buffer.getSizeZ();
+/*  637 */     double[][] buf = new double[bnx][bnz];
+/*  638 */     buffer.getXZ(0, 0, 0, buf);
+/*  639 */     putXZ(x, y, z, buf);
+/*      */   }
+/*      */ 
+/*      */   public void putYZ(int x, int y, int z, ImageWare buffer)
+/*      */   {
+/*  652 */     int bny = buffer.getSizeY();
+/*  653 */     int bnz = buffer.getSizeZ();
+/*  654 */     double[][] buf = new double[bny][bnz];
+/*  655 */     buffer.getYZ(0, 0, 0, buf);
+/*  656 */     putYZ(x, y, z, buf);
+/*      */   }
+/*      */ 
+/*      */   public void putXYZ(int x, int y, int z, ImageWare buffer)
+/*      */   {
+/*  669 */     int bnx = buffer.getSizeX();
+/*  670 */     int bny = buffer.getSizeY();
+/*  671 */     int bnz = buffer.getSizeZ();
+/*  672 */     double[][][] buf = new double[bnx][bny][bnz];
+/*  673 */     buffer.getXYZ(0, 0, 0, buf);
+/*  674 */     putXYZ(x, y, z, buf);
+/*      */   }
+/*      */ 
+/*      */   public void putX(int x, int y, int z, byte[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  689 */       int offset = x + y * this.nx;
+/*  690 */       int leni = buffer.length;
+/*  691 */       short[] tmp = (short[])this.data[z];
+/*      */ 
+/*  693 */       for (int i = 0; i < leni; i++) {
+/*  694 */         tmp[offset] = ((short)(buffer[i] & 0xFF));
+/*  695 */         offset++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  699 */       throw_put("X", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putX(int x, int y, int z, short[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  714 */       int offset = x + y * this.nx;
+/*  715 */       int leni = buffer.length;
+/*  716 */       short[] tmp = (short[])this.data[z];
+/*      */ 
+/*  718 */       System.arraycopy(buffer, 0, tmp, offset, leni);
+/*      */     }
+/*      */     catch (Exception e) {
+/*  721 */       throw_put("X", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putX(int x, int y, int z, float[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  736 */       int offset = x + y * this.nx;
+/*  737 */       int leni = buffer.length;
+/*  738 */       short[] tmp = (short[])this.data[z];
+/*      */ 
+/*  740 */       for (int i = 0; i < leni; i++) {
+/*  741 */         tmp[offset] = ((short)(int)buffer[i]);
+/*  742 */         offset++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  746 */       throw_put("X", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putX(int x, int y, int z, double[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  761 */       int offset = x + y * this.nx;
+/*  762 */       int leni = buffer.length;
+/*  763 */       short[] tmp = (short[])this.data[z];
+/*      */ 
+/*  765 */       for (int i = 0; i < leni; i++) {
+/*  766 */         tmp[offset] = ((short)(int)buffer[i]);
+/*  767 */         offset++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  771 */       throw_put("X", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putY(int x, int y, int z, byte[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  787 */       int offset = x + y * this.nx;
+/*  788 */       int leni = buffer.length;
+/*  789 */       short[] tmp = (short[])this.data[z];
+/*  790 */       for (int i = 0; i < leni; i++) {
+/*  791 */         tmp[offset] = ((short)(buffer[i] & 0xFF));
+/*  792 */         offset += this.nx;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  796 */       throw_put("Y", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putY(int x, int y, int z, short[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  811 */       int offset = x + y * this.nx;
+/*  812 */       int leni = buffer.length;
+/*  813 */       short[] tmp = (short[])this.data[z];
+/*  814 */       for (int i = 0; i < leni; i++) {
+/*  815 */         tmp[offset] = ((short)(buffer[i] & 0xFFFF));
+/*  816 */         offset += this.nx;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  820 */       throw_put("Y", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putY(int x, int y, int z, float[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  835 */       int offset = x + y * this.nx;
+/*  836 */       int leni = buffer.length;
+/*  837 */       short[] tmp = (short[])this.data[z];
+/*  838 */       for (int i = 0; i < leni; i++) {
+/*  839 */         tmp[offset] = ((short)(int)buffer[i]);
+/*  840 */         offset += this.nx;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  844 */       throw_put("Y", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putY(int x, int y, int z, double[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  859 */       int offset = x + y * this.nx;
+/*  860 */       int leni = buffer.length;
+/*  861 */       short[] tmp = (short[])this.data[z];
+/*  862 */       for (int i = 0; i < leni; i++) {
+/*  863 */         tmp[offset] = ((short)(int)buffer[i]);
+/*  864 */         offset += this.nx;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  868 */       throw_put("Y", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putZ(int x, int y, int z, byte[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  884 */       int offset = x + y * this.nx;
+/*  885 */       int leni = buffer.length;
+/*  886 */       for (int i = 0; i < leni; i++) {
+/*  887 */         ((short[])this.data[z])[offset] = ((short)(buffer[i] & 0xFF));
+/*  888 */         z++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  892 */       throw_put("Z", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putZ(int x, int y, int z, short[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  907 */       int offset = x + y * this.nx;
+/*  908 */       int leni = buffer.length;
+/*  909 */       for (int i = 0; i < leni; i++) {
+/*  910 */         ((short[])this.data[z])[offset] = ((short)(buffer[i] & 0xFFFF));
+/*  911 */         z++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  915 */       throw_put("Z", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putZ(int x, int y, int z, float[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  930 */       int offset = x + y * this.nx;
+/*  931 */       int leni = buffer.length;
+/*  932 */       for (int i = 0; i < leni; i++) {
+/*  933 */         ((short[])this.data[z])[offset] = ((short)(int)buffer[i]);
+/*  934 */         z++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  938 */       throw_put("Z", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putZ(int x, int y, int z, double[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  953 */       int offset = x + y * this.nx;
+/*  954 */       int leni = buffer.length;
+/*  955 */       for (int i = 0; i < leni; i++) {
+/*  956 */         ((short[])this.data[z])[offset] = ((short)(int)buffer[i]);
+/*  957 */         z++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/*  961 */       throw_put("Z", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putXY(int x, int y, int z, byte[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/*  977 */       int offset = x + y * this.nx;
+/*  978 */       int leni = buffer.length;
+/*  979 */       int lenj = buffer[0].length;
+/*  980 */       short[] tmp = (short[])this.data[z];
+/*  981 */       for (int j = 0; j < lenj; j++) {
+/*  982 */         offset = x + (y + j) * this.nx;
+/*  983 */         for (int i = 0; i < leni; offset++) {
+/*  984 */           tmp[offset] = ((short)(buffer[i][j] & 0xFF));
+/*      */ 
+/*  983 */           i++;
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/*  989 */       throw_put("XY", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putXY(int x, int y, int z, short[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1004 */       int offset = x + y * this.nx;
+/* 1005 */       int leni = buffer.length;
+/* 1006 */       int lenj = buffer[0].length;
+/* 1007 */       short[] tmp = (short[])this.data[z];
+/* 1008 */       for (int j = 0; j < lenj; j++) {
+/* 1009 */         offset = x + (y + j) * this.nx;
+/* 1010 */         for (int i = 0; i < leni; offset++) {
+/* 1011 */           tmp[offset] = ((short)(buffer[i][j] & 0xFFFF));
+/*      */ 
+/* 1010 */           i++;
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 1016 */       throw_put("XY", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putXY(int x, int y, int z, float[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1031 */       int offset = x + y * this.nx;
+/* 1032 */       int leni = buffer.length;
+/* 1033 */       int lenj = buffer[0].length;
+/* 1034 */       short[] tmp = (short[])this.data[z];
+/* 1035 */       for (int j = 0; j < lenj; j++) {
+/* 1036 */         offset = x + (y + j) * this.nx;
+/* 1037 */         for (int i = 0; i < leni; offset++) {
+/* 1038 */           tmp[offset] = ((short)(int)buffer[i][j]);
+/*      */ 
+/* 1037 */           i++;
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 1043 */       throw_put("XY", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putXY(int x, int y, int z, double[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1058 */       int offset = x + y * this.nx;
+/* 1059 */       int leni = buffer.length;
+/* 1060 */       int lenj = buffer[0].length;
+/* 1061 */       short[] tmp = (short[])this.data[z];
+/* 1062 */       for (int j = 0; j < lenj; j++) {
+/* 1063 */         offset = x + (y + j) * this.nx;
+/* 1064 */         for (int i = 0; i < leni; offset++) {
+/* 1065 */           tmp[offset] = ((short)(int)buffer[i][j]);
+/*      */ 
+/* 1064 */           i++;
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 1070 */       throw_put("XY", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putXZ(int x, int y, int z, byte[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1086 */       int offset = x + y * this.nx;
+/* 1087 */       int leni = buffer.length;
+/* 1088 */       int lenj = buffer[0].length;
+/* 1089 */       for (int j = 0; j < lenj; z++) {
+/* 1090 */         offset = x + j * this.nx;
+/* 1091 */         for (int i = 0; i < leni; offset++) {
+/* 1092 */           ((short[])this.data[z])[offset] = ((short)(buffer[i][j] & 0xFF));
+/*      */ 
+/* 1091 */           i++;
+/*      */         }
+/* 1089 */         j++;
+/*      */       }
+/*      */ 
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 1097 */       throw_put("YZ", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putXZ(int x, int y, int z, short[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1112 */       int offset = x + y * this.nx;
+/* 1113 */       int leni = buffer.length;
+/* 1114 */       int lenj = buffer[0].length;
+/* 1115 */       for (int j = 0; j < lenj; z++) {
+/* 1116 */         offset = x + j * this.nx;
+/* 1117 */         for (int i = 0; i < leni; offset++) {
+/* 1118 */           ((short[])this.data[z])[offset] = ((short)(buffer[i][j] & 0xFFFF));
+/*      */ 
+/* 1117 */           i++;
+/*      */         }
+/* 1115 */         j++;
+/*      */       }
+/*      */ 
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 1123 */       throw_put("YZ", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putXZ(int x, int y, int z, float[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1138 */       int offset = x + y * this.nx;
+/* 1139 */       int leni = buffer.length;
+/* 1140 */       int lenj = buffer[0].length;
+/* 1141 */       for (int j = 0; j < lenj; z++) {
+/* 1142 */         offset = x + j * this.nx;
+/* 1143 */         for (int i = 0; i < leni; offset++) {
+/* 1144 */           ((short[])this.data[z])[offset] = ((short)(int)buffer[i][j]);
+/*      */ 
+/* 1143 */           i++;
+/*      */         }
+/* 1141 */         j++;
+/*      */       }
+/*      */ 
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 1149 */       throw_put("YZ", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putXZ(int x, int y, int z, double[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1164 */       int offset = x + y * this.nx;
+/* 1165 */       int leni = buffer.length;
+/* 1166 */       int lenj = buffer[0].length;
+/* 1167 */       for (int j = 0; j < lenj; z++) {
+/* 1168 */         offset = x + j * this.nx;
+/* 1169 */         for (int i = 0; i < leni; offset++) {
+/* 1170 */           ((short[])this.data[z])[offset] = ((short)(int)buffer[i][j]);
+/*      */ 
+/* 1169 */           i++;
+/*      */         }
+/* 1167 */         j++;
+/*      */       }
+/*      */ 
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 1175 */       throw_put("YZ", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putYZ(int x, int y, int z, byte[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1191 */       int offset = x + y * this.nx;
+/* 1192 */       int leni = buffer.length;
+/* 1193 */       int lenj = buffer[0].length;
+/* 1194 */       for (int j = 0; j < lenj; offset = x + this.nx * y) {
+/* 1195 */         for (int i = 0; i < leni; offset += this.nx) {
+/* 1196 */           ((short[])this.data[z])[offset] = ((short)(buffer[i][j] & 0xFF));
+/*      */ 
+/* 1195 */           i++;
+/*      */         }
+/* 1194 */         j++; z++;
+/*      */       }
+/*      */ 
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 1200 */       throw_put("XZ", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putYZ(int x, int y, int z, short[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1215 */       int offset = x + y * this.nx;
+/* 1216 */       int leni = buffer.length;
+/* 1217 */       int lenj = buffer[0].length;
+/* 1218 */       for (int j = 0; j < lenj; offset = x + this.nx * y) {
+/* 1219 */         for (int i = 0; i < leni; offset += this.nx) {
+/* 1220 */           ((short[])this.data[z])[offset] = ((short)(buffer[i][j] & 0xFFFF));
+/*      */ 
+/* 1219 */           i++;
+/*      */         }
+/* 1218 */         j++; z++;
+/*      */       }
+/*      */ 
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 1224 */       throw_put("XZ", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putYZ(int x, int y, int z, float[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1239 */       int offset = x + y * this.nx;
+/* 1240 */       int leni = buffer.length;
+/* 1241 */       int lenj = buffer[0].length;
+/* 1242 */       for (int j = 0; j < lenj; offset = x + this.nx * y) {
+/* 1243 */         for (int i = 0; i < leni; offset += this.nx) {
+/* 1244 */           ((short[])this.data[z])[offset] = ((short)(int)buffer[i][j]);
+/*      */ 
+/* 1243 */           i++;
+/*      */         }
+/* 1242 */         j++; z++;
+/*      */       }
+/*      */ 
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 1248 */       throw_put("XZ", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putYZ(int x, int y, int z, double[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1263 */       int offset = x + y * this.nx;
+/* 1264 */       int leni = buffer.length;
+/* 1265 */       int lenj = buffer[0].length;
+/* 1266 */       for (int j = 0; j < lenj; offset = x + this.nx * y) {
+/* 1267 */         for (int i = 0; i < leni; offset += this.nx) {
+/* 1268 */           ((short[])this.data[z])[offset] = ((short)(int)buffer[i][j]);
+/*      */ 
+/* 1267 */           i++;
+/*      */         }
+/* 1266 */         j++; z++;
+/*      */       }
+/*      */ 
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 1272 */       throw_put("XZ", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putXYZ(int x, int y, int z, byte[][][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1288 */       int offset = x + y * this.nx;
+/* 1289 */       int leni = buffer.length;
+/* 1290 */       int lenj = buffer[0].length;
+/* 1291 */       int lenk = buffer[0][0].length;
+/* 1292 */       for (int k = 0; k < lenk; z++) {
+/* 1293 */         short[] tmp = (short[])this.data[z];
+/* 1294 */         for (int j = 0; j < lenj; j++) {
+/* 1295 */           offset = x + (j + y) * this.nx;
+/* 1296 */           for (int i = 0; i < leni; offset++) {
+/* 1297 */             tmp[offset] = ((short)(buffer[i][j][k] & 0xFF));
+/*      */ 
+/* 1296 */             i++;
+/*      */           }
+/*      */         }
+/* 1292 */         k++;
+/*      */       }
+/*      */ 
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 1303 */       throw_put("XYZ", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putXYZ(int x, int y, int z, short[][][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1318 */       int offset = x + y * this.nx;
+/* 1319 */       int leni = buffer.length;
+/* 1320 */       int lenj = buffer[0].length;
+/* 1321 */       int lenk = buffer[0][0].length;
+/* 1322 */       for (int k = 0; k < lenk; z++) {
+/* 1323 */         short[] tmp = (short[])this.data[z];
+/* 1324 */         for (int j = 0; j < lenj; j++) {
+/* 1325 */           offset = x + (j + y) * this.nx;
+/* 1326 */           for (int i = 0; i < leni; offset++) {
+/* 1327 */             tmp[offset] = ((short)(buffer[i][j][k] & 0xFFFF));
+/*      */ 
+/* 1326 */             i++;
+/*      */           }
+/*      */         }
+/* 1322 */         k++;
+/*      */       }
+/*      */ 
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 1333 */       throw_put("XYZ", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putXYZ(int x, int y, int z, float[][][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1348 */       int offset = x + y * this.nx;
+/* 1349 */       int leni = buffer.length;
+/* 1350 */       int lenj = buffer[0].length;
+/* 1351 */       int lenk = buffer[0][0].length;
+/* 1352 */       for (int k = 0; k < lenk; z++) {
+/* 1353 */         short[] tmp = (short[])this.data[z];
+/* 1354 */         for (int j = 0; j < lenj; j++) {
+/* 1355 */           offset = x + (j + y) * this.nx;
+/* 1356 */           for (int i = 0; i < leni; offset++) {
+/* 1357 */             tmp[offset] = ((short)(int)buffer[i][j][k]);
+/*      */ 
+/* 1356 */             i++;
+/*      */           }
+/*      */         }
+/* 1352 */         k++;
+/*      */       }
+/*      */ 
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 1363 */       throw_put("XYZ", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void putXYZ(int x, int y, int z, double[][][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1378 */       int offset = x + y * this.nx;
+/* 1379 */       int leni = buffer.length;
+/* 1380 */       int lenj = buffer[0].length;
+/* 1381 */       int lenk = buffer[0][0].length;
+/* 1382 */       for (int k = 0; k < lenk; z++) {
+/* 1383 */         short[] tmp = (short[])this.data[z];
+/* 1384 */         for (int j = 0; j < lenj; j++) {
+/* 1385 */           offset = x + (j + y) * this.nx;
+/* 1386 */           for (int i = 0; i < leni; offset++) {
+/* 1387 */             tmp[offset] = ((short)(int)buffer[i][j][k]);
+/*      */ 
+/* 1386 */             i++;
+/*      */           }
+/*      */         }
+/* 1382 */         k++;
+/*      */       }
+/*      */ 
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 1393 */       throw_put("XYZ", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getX(int x, int y, int z, ImageWare buffer)
+/*      */   {
+/* 1415 */     int bnx = buffer.getSizeX();
+/* 1416 */     double[] buf = new double[bnx];
+/* 1417 */     getX(x, y, z, buf);
+/* 1418 */     buffer.putX(0, 0, 0, buf);
+/*      */   }
+/*      */ 
+/*      */   public void getY(int x, int y, int z, ImageWare buffer)
+/*      */   {
+/* 1431 */     int bny = buffer.getSizeY();
+/* 1432 */     double[] buf = new double[bny];
+/* 1433 */     getY(x, y, z, buf);
+/* 1434 */     buffer.putY(0, 0, 0, buf);
+/*      */   }
+/*      */ 
+/*      */   public void getZ(int x, int y, int z, ImageWare buffer)
+/*      */   {
+/* 1447 */     int bnz = buffer.getSizeZ();
+/* 1448 */     double[] buf = new double[bnz];
+/* 1449 */     getZ(x, y, z, buf);
+/* 1450 */     buffer.putZ(0, 0, 0, buf);
+/*      */   }
+/*      */ 
+/*      */   public void getXY(int x, int y, int z, ImageWare buffer)
+/*      */   {
+/* 1463 */     int bnx = buffer.getSizeX();
+/* 1464 */     int bny = buffer.getSizeY();
+/* 1465 */     double[][] buf = new double[bnx][bny];
+/* 1466 */     getXY(x, y, z, buf);
+/* 1467 */     buffer.putXY(0, 0, 0, buf);
+/*      */   }
+/*      */ 
+/*      */   public void getXZ(int x, int y, int z, ImageWare buffer)
+/*      */   {
+/* 1480 */     int bnx = buffer.getSizeX();
+/* 1481 */     int bnz = buffer.getSizeZ();
+/* 1482 */     double[][] buf = new double[bnx][bnz];
+/* 1483 */     getXZ(x, y, z, buf);
+/* 1484 */     buffer.putXZ(0, 0, 0, buf);
+/*      */   }
+/*      */ 
+/*      */   public void getYZ(int x, int y, int z, ImageWare buffer)
+/*      */   {
+/* 1497 */     int bny = buffer.getSizeY();
+/* 1498 */     int bnz = buffer.getSizeZ();
+/* 1499 */     double[][] buf = new double[bny][bnz];
+/* 1500 */     getYZ(x, y, z, buf);
+/* 1501 */     buffer.putYZ(0, 0, 0, buf);
+/*      */   }
+/*      */ 
+/*      */   public void getXYZ(int x, int y, int z, ImageWare buffer)
+/*      */   {
+/* 1514 */     int bnx = buffer.getSizeX();
+/* 1515 */     int bny = buffer.getSizeY();
+/* 1516 */     int bnz = buffer.getSizeZ();
+/* 1517 */     double[][][] buf = new double[bnx][bny][bnz];
+/* 1518 */     getXYZ(x, y, z, buf);
+/* 1519 */     buffer.putXYZ(0, 0, 0, buf);
+/*      */   }
+/*      */ 
+/*      */   public void getX(int x, int y, int z, byte[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1535 */       int offset = x + y * this.nx;
+/* 1536 */       int leni = buffer.length;
+/* 1537 */       short[] tmp = (short[])this.data[z];
+/*      */ 
+/* 1539 */       for (int i = 0; i < leni; i++) {
+/* 1540 */         buffer[i] = ((byte)(tmp[offset] & 0xFFFF));
+/* 1541 */         offset++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1545 */       throw_get("X", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getX(int x, int y, int z, short[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1561 */       int offset = x + y * this.nx;
+/* 1562 */       int leni = buffer.length;
+/* 1563 */       short[] tmp = (short[])this.data[z];
+/*      */ 
+/* 1565 */       System.arraycopy(tmp, offset, buffer, 0, leni);
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1568 */       throw_get("X", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getX(int x, int y, int z, float[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1584 */       int offset = x + y * this.nx;
+/* 1585 */       int leni = buffer.length;
+/* 1586 */       short[] tmp = (short[])this.data[z];
+/*      */ 
+/* 1588 */       for (int i = 0; i < leni; i++) {
+/* 1589 */         buffer[i] = (tmp[offset] & 0xFFFF);
+/* 1590 */         offset++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1594 */       throw_get("X", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getX(int x, int y, int z, double[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1610 */       int offset = x + y * this.nx;
+/* 1611 */       int leni = buffer.length;
+/* 1612 */       short[] tmp = (short[])this.data[z];
+/*      */ 
+/* 1614 */       for (int i = 0; i < leni; i++) {
+/* 1615 */         buffer[i] = (tmp[offset] & 0xFFFF);
+/* 1616 */         offset++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1620 */       throw_get("X", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getY(int x, int y, int z, byte[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1636 */       int offset = x + y * this.nx;
+/* 1637 */       int leni = buffer.length;
+/* 1638 */       short[] tmp = (short[])this.data[z];
+/* 1639 */       for (int i = 0; i < leni; i++) {
+/* 1640 */         buffer[i] = ((byte)(tmp[offset] & 0xFFFF));
+/* 1641 */         offset += this.nx;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1645 */       throw_get("X", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getY(int x, int y, int z, short[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1660 */       int offset = x + y * this.nx;
+/* 1661 */       int leni = buffer.length;
+/* 1662 */       short[] tmp = (short[])this.data[z];
+/* 1663 */       for (int i = 0; i < leni; i++) {
+/* 1664 */         buffer[i] = ((short)(tmp[offset] & 0xFFFF));
+/* 1665 */         offset += this.nx;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1669 */       throw_get("X", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getY(int x, int y, int z, float[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1684 */       int offset = x + y * this.nx;
+/* 1685 */       int leni = buffer.length;
+/* 1686 */       short[] tmp = (short[])this.data[z];
+/* 1687 */       for (int i = 0; i < leni; i++) {
+/* 1688 */         buffer[i] = (tmp[offset] & 0xFFFF);
+/* 1689 */         offset += this.nx;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1693 */       throw_get("X", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getY(int x, int y, int z, double[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1708 */       int offset = x + y * this.nx;
+/* 1709 */       int leni = buffer.length;
+/* 1710 */       short[] tmp = (short[])this.data[z];
+/* 1711 */       for (int i = 0; i < leni; i++) {
+/* 1712 */         buffer[i] = (tmp[offset] & 0xFFFF);
+/* 1713 */         offset += this.nx;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1717 */       throw_get("X", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getZ(int x, int y, int z, byte[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1733 */       int offset = x + y * this.nx;
+/* 1734 */       int leni = buffer.length;
+/* 1735 */       for (int i = 0; i < leni; i++) {
+/* 1736 */         buffer[i] = ((byte)(((short[])(short[])this.data[z])[offset] & 0xFFFF));
+/* 1737 */         z++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1741 */       throw_get("Y", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getZ(int x, int y, int z, short[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1756 */       int offset = x + y * this.nx;
+/* 1757 */       int leni = buffer.length;
+/* 1758 */       for (int i = 0; i < leni; i++) {
+/* 1759 */         buffer[i] = ((short)(((short[])(short[])this.data[z])[offset] & 0xFFFF));
+/* 1760 */         z++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1764 */       throw_get("Y", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getZ(int x, int y, int z, float[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1779 */       int offset = x + y * this.nx;
+/* 1780 */       int leni = buffer.length;
+/* 1781 */       for (int i = 0; i < leni; i++) {
+/* 1782 */         buffer[i] = (((short[])(short[])this.data[z])[offset] & 0xFFFF);
+/* 1783 */         z++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1787 */       throw_get("Y", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getZ(int x, int y, int z, double[] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1802 */       int offset = x + y * this.nx;
+/* 1803 */       int leni = buffer.length;
+/* 1804 */       for (int i = 0; i < leni; i++) {
+/* 1805 */         buffer[i] = (((short[])(short[])this.data[z])[offset] & 0xFFFF);
+/* 1806 */         z++;
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e) {
+/* 1810 */       throw_get("Y", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getXY(int x, int y, int z, byte[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1826 */       int offset = x + y * this.nx;
+/* 1827 */       int leni = buffer.length;
+/* 1828 */       int lenj = buffer[0].length;
+/* 1829 */       short[] tmp = (short[])this.data[z];
+/* 1830 */       for (int j = 0; j < lenj; j++) {
+/* 1831 */         offset = x + (y + j) * this.nx;
+/* 1832 */         for (int i = 0; i < leni; offset++) {
+/* 1833 */           buffer[i][j] = ((byte)(tmp[offset] & 0xFFFF));
+/*      */ 
+/* 1832 */           i++;
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 1838 */       throw_get("XY", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getXY(int x, int y, int z, short[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1853 */       int offset = x + y * this.nx;
+/* 1854 */       int leni = buffer.length;
+/* 1855 */       int lenj = buffer[0].length;
+/* 1856 */       short[] tmp = (short[])this.data[z];
+/* 1857 */       for (int j = 0; j < lenj; j++) {
+/* 1858 */         offset = x + (y + j) * this.nx;
+/* 1859 */         for (int i = 0; i < leni; offset++) {
+/* 1860 */           buffer[i][j] = ((short)(tmp[offset] & 0xFFFF));
+/*      */ 
+/* 1859 */           i++;
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 1865 */       throw_get("XY", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getXY(int x, int y, int z, float[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1880 */       int offset = x + y * this.nx;
+/* 1881 */       int leni = buffer.length;
+/* 1882 */       int lenj = buffer[0].length;
+/* 1883 */       short[] tmp = (short[])this.data[z];
+/* 1884 */       for (int j = 0; j < lenj; j++) {
+/* 1885 */         offset = x + (y + j) * this.nx;
+/* 1886 */         for (int i = 0; i < leni; offset++) {
+/* 1887 */           buffer[i][j] = (tmp[offset] & 0xFFFF);
+/*      */ 
+/* 1886 */           i++;
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 1892 */       throw_get("XY", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getXY(int x, int y, int z, double[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1907 */       int offset = x + y * this.nx;
+/* 1908 */       int leni = buffer.length;
+/* 1909 */       int lenj = buffer[0].length;
+/* 1910 */       short[] tmp = (short[])this.data[z];
+/* 1911 */       for (int j = 0; j < lenj; j++) {
+/* 1912 */         offset = x + (y + j) * this.nx;
+/* 1913 */         for (int i = 0; i < leni; offset++) {
+/* 1914 */           buffer[i][j] = (tmp[offset] & 0xFFFF);
+/*      */ 
+/* 1913 */           i++;
+/*      */         }
+/*      */       }
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 1919 */       throw_get("XY", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getXZ(int x, int y, int z, byte[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1935 */       int offset = x + y * this.nx;
+/* 1936 */       int leni = buffer.length;
+/* 1937 */       int lenj = buffer[0].length;
+/* 1938 */       for (int j = 0; j < lenj; z++) {
+/* 1939 */         offset = x + y * this.nx;
+/* 1940 */         for (int i = 0; i < leni; offset++) {
+/* 1941 */           buffer[i][j] = ((byte)(((short[])(short[])this.data[z])[offset] & 0xFFFF));
+/*      */ 
+/* 1940 */           i++;
+/*      */         }
+/* 1938 */         j++;
+/*      */       }
+/*      */ 
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 1946 */       throw_get("XZ", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getXZ(int x, int y, int z, short[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1961 */       int offset = x + y * this.nx;
+/* 1962 */       int leni = buffer.length;
+/* 1963 */       int lenj = buffer[0].length;
+/* 1964 */       for (int j = 0; j < lenj; z++) {
+/* 1965 */         offset = x + y * this.nx;
+/* 1966 */         for (int i = 0; i < leni; offset++) {
+/* 1967 */           buffer[i][j] = ((short)(((short[])(short[])this.data[z])[offset] & 0xFFFF));
+/*      */ 
+/* 1966 */           i++;
+/*      */         }
+/* 1964 */         j++;
+/*      */       }
+/*      */ 
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 1972 */       throw_get("XZ", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getXZ(int x, int y, int z, float[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 1987 */       int offset = x + y * this.nx;
+/* 1988 */       int leni = buffer.length;
+/* 1989 */       int lenj = buffer[0].length;
+/* 1990 */       for (int j = 0; j < lenj; z++) {
+/* 1991 */         offset = x + y * this.nx;
+/* 1992 */         for (int i = 0; i < leni; offset++) {
+/* 1993 */           buffer[i][j] = (((short[])(short[])this.data[z])[offset] & 0xFFFF);
+/*      */ 
+/* 1992 */           i++;
+/*      */         }
+/* 1990 */         j++;
+/*      */       }
+/*      */ 
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 1998 */       throw_get("XZ", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getXZ(int x, int y, int z, double[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 2013 */       int offset = x + y * this.nx;
+/* 2014 */       int leni = buffer.length;
+/* 2015 */       int lenj = buffer[0].length;
+/* 2016 */       for (int j = 0; j < lenj; z++) {
+/* 2017 */         offset = x + y * this.nx;
+/* 2018 */         for (int i = 0; i < leni; offset++) {
+/* 2019 */           buffer[i][j] = (((short[])(short[])this.data[z])[offset] & 0xFFFF);
+/*      */ 
+/* 2018 */           i++;
+/*      */         }
+/* 2016 */         j++;
+/*      */       }
+/*      */ 
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 2024 */       throw_get("XZ", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getYZ(int x, int y, int z, byte[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 2040 */       int offset = x + y * this.nx;
+/* 2041 */       int leni = buffer.length;
+/* 2042 */       int lenj = buffer[0].length;
+/* 2043 */       for (int j = 0; j < lenj; offset = x + this.nx * y) {
+/* 2044 */         for (int i = 0; i < leni; offset += this.nx) {
+/* 2045 */           buffer[i][j] = ((byte)(((short[])(short[])this.data[z])[offset] & 0xFFFF));
+/*      */ 
+/* 2044 */           i++;
+/*      */         }
+/* 2043 */         j++; z++;
+/*      */       }
+/*      */ 
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 2050 */       throw_get("YZ", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getYZ(int x, int y, int z, short[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 2065 */       int offset = x + y * this.nx;
+/* 2066 */       int leni = buffer.length;
+/* 2067 */       int lenj = buffer[0].length;
+/* 2068 */       for (int j = 0; j < lenj; offset = x + this.nx * y) {
+/* 2069 */         for (int i = 0; i < leni; offset += this.nx) {
+/* 2070 */           buffer[i][j] = ((short)(((short[])(short[])this.data[z])[offset] & 0xFFFF));
+/*      */ 
+/* 2069 */           i++;
+/*      */         }
+/* 2068 */         j++; z++;
+/*      */       }
+/*      */ 
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 2075 */       throw_get("YZ", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getYZ(int x, int y, int z, float[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 2090 */       int offset = x + y * this.nx;
+/* 2091 */       int leni = buffer.length;
+/* 2092 */       int lenj = buffer[0].length;
+/* 2093 */       for (int j = 0; j < lenj; offset = x + this.nx * y) {
+/* 2094 */         for (int i = 0; i < leni; offset += this.nx) {
+/* 2095 */           buffer[i][j] = (((short[])(short[])this.data[z])[offset] & 0xFFFF);
+/*      */ 
+/* 2094 */           i++;
+/*      */         }
+/* 2093 */         j++; z++;
+/*      */       }
+/*      */ 
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 2100 */       throw_get("YZ", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getYZ(int x, int y, int z, double[][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 2115 */       int offset = x + y * this.nx;
+/* 2116 */       int leni = buffer.length;
+/* 2117 */       int lenj = buffer[0].length;
+/* 2118 */       for (int j = 0; j < lenj; offset = x + this.nx * y) {
+/* 2119 */         for (int i = 0; i < leni; offset += this.nx) {
+/* 2120 */           buffer[i][j] = (((short[])(short[])this.data[z])[offset] & 0xFFFF);
+/*      */ 
+/* 2119 */           i++;
+/*      */         }
+/* 2118 */         j++; z++;
+/*      */       }
+/*      */ 
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 2125 */       throw_get("YZ", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getXYZ(int x, int y, int z, byte[][][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 2141 */       int offset = x + y * this.nx;
+/* 2142 */       int leni = buffer.length;
+/* 2143 */       int lenj = buffer[0].length;
+/* 2144 */       int lenk = buffer[0][0].length;
+/* 2145 */       for (int k = 0; k < lenk; z++) {
+/* 2146 */         short[] tmp = (short[])this.data[z];
+/* 2147 */         for (int j = 0; j < lenj; j++) {
+/* 2148 */           offset = x + (j + y) * this.nx;
+/* 2149 */           for (int i = 0; i < leni; offset++) {
+/* 2150 */             buffer[i][j][k] = ((byte)(tmp[offset] & 0xFFFF));
+/*      */ 
+/* 2149 */             i++;
+/*      */           }
+/*      */         }
+/* 2145 */         k++;
+/*      */       }
+/*      */ 
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 2156 */       throw_get("XYZ", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getXYZ(int x, int y, int z, short[][][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 2171 */       int offset = x + y * this.nx;
+/* 2172 */       int leni = buffer.length;
+/* 2173 */       int lenj = buffer[0].length;
+/* 2174 */       int lenk = buffer[0][0].length;
+/* 2175 */       for (int k = 0; k < lenk; z++) {
+/* 2176 */         short[] tmp = (short[])this.data[z];
+/* 2177 */         for (int j = 0; j < lenj; j++) {
+/* 2178 */           offset = x + (j + y) * this.nx;
+/* 2179 */           for (int i = 0; i < leni; offset++) {
+/* 2180 */             buffer[i][j][k] = ((short)(tmp[offset] & 0xFFFF));
+/*      */ 
+/* 2179 */             i++;
+/*      */           }
+/*      */         }
+/* 2175 */         k++;
+/*      */       }
+/*      */ 
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 2186 */       throw_get("XYZ", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getXYZ(int x, int y, int z, float[][][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 2201 */       int offset = x + y * this.nx;
+/* 2202 */       int leni = buffer.length;
+/* 2203 */       int lenj = buffer[0].length;
+/* 2204 */       int lenk = buffer[0][0].length;
+/* 2205 */       for (int k = 0; k < lenk; z++) {
+/* 2206 */         short[] tmp = (short[])this.data[z];
+/* 2207 */         for (int j = 0; j < lenj; j++) {
+/* 2208 */           offset = x + (j + y) * this.nx;
+/* 2209 */           for (int i = 0; i < leni; offset++) {
+/* 2210 */             buffer[i][j][k] = (tmp[offset] & 0xFFFF);
+/*      */ 
+/* 2209 */             i++;
+/*      */           }
+/*      */         }
+/* 2205 */         k++;
+/*      */       }
+/*      */ 
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 2216 */       throw_get("XYZ", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   public void getXYZ(int x, int y, int z, double[][][] buffer)
+/*      */   {
+/*      */     try
+/*      */     {
+/* 2231 */       int offset = x + y * this.nx;
+/* 2232 */       int leni = buffer.length;
+/* 2233 */       int lenj = buffer[0].length;
+/* 2234 */       int lenk = buffer[0][0].length;
+/* 2235 */       for (int k = 0; k < lenk; z++) {
+/* 2236 */         short[] tmp = (short[])this.data[z];
+/* 2237 */         for (int j = 0; j < lenj; j++) {
+/* 2238 */           offset = x + (j + y) * this.nx;
+/* 2239 */           for (int i = 0; i < leni; offset++) {
+/* 2240 */             buffer[i][j][k] = (tmp[offset] & 0xFFFF);
+/*      */ 
+/* 2239 */             i++;
+/*      */           }
+/*      */         }
+/* 2235 */         k++;
+/*      */       }
+/*      */ 
+/*      */     }
+/*      */     catch (Exception e)
+/*      */     {
+/* 2246 */       throw_get("XYZ", "No check", buffer, x, y, z);
+/*      */     }
+/*      */   }
+/*      */ 
+/*      */   protected void throw_constructor()
+/*      */   {
+/* 2263 */     throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnable to create a short imageware.\n-------------------------------------------------------\n");
+/*      */   }
+/*      */ 
+/*      */   protected void throw_constructor(int nx, int ny, int nz)
+/*      */   {
+/* 2275 */     throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnable to create a short imageware " + nx + "," + ny + "," + nz + "].\n" + "-------------------------------------------------------\n");
+/*      */   }
+/*      */ 
+/*      */   protected void throw_get(String direction, String border, Object buffer, int x, int y, int z)
+/*      */   {
+/* 2288 */     int leni = 0;
+/* 2289 */     int lenj = 0;
+/* 2290 */     int lenk = 0;
+/* 2291 */     String type = " unknown type";
+/* 2292 */     if ((buffer instanceof byte[])) {
+/* 2293 */       leni = ((byte[])buffer).length;
+/* 2294 */       type = " 1D byte";
+/*      */     }
+/* 2296 */     else if ((buffer instanceof short[])) {
+/* 2297 */       leni = ((short[])buffer).length;
+/* 2298 */       type = " 1D short";
+/*      */     }
+/* 2300 */     else if ((buffer instanceof float[])) {
+/* 2301 */       leni = ((float[])buffer).length;
+/* 2302 */       type = " 1D float";
+/*      */     }
+/* 2304 */     else if ((buffer instanceof double[])) {
+/* 2305 */       leni = ((double[])buffer).length;
+/* 2306 */       type = " 1D double";
+/*      */     }
+/* 2308 */     else if ((buffer instanceof byte[][])) {
+/* 2309 */       leni = ((byte[][])buffer).length;
+/* 2310 */       lenj = ((byte[][])(byte[][])buffer)[0].length;
+/* 2311 */       type = " 2D byte";
+/*      */     }
+/* 2313 */     else if ((buffer instanceof short[][])) {
+/* 2314 */       leni = ((short[][])buffer).length;
+/* 2315 */       lenj = ((short[][])(short[][])buffer)[0].length;
+/* 2316 */       type = " 2D short";
+/*      */     }
+/* 2318 */     else if ((buffer instanceof float[][])) {
+/* 2319 */       leni = ((float[][])buffer).length;
+/* 2320 */       lenj = ((float[][])(float[][])buffer)[0].length;
+/* 2321 */       type = " 2D float";
+/*      */     }
+/* 2323 */     else if ((buffer instanceof double[][])) {
+/* 2324 */       leni = ((double[][])buffer).length;
+/* 2325 */       lenj = ((double[][])(double[][])buffer)[0].length;
+/* 2326 */       type = " 2D double";
+/*      */     }
+/* 2328 */     else if ((buffer instanceof byte[][][])) {
+/* 2329 */       leni = ((byte[][][])buffer).length;
+/* 2330 */       lenj = ((byte[][][])(byte[][][])buffer)[0].length;
+/* 2331 */       lenk = ((byte[][][])(byte[][][])buffer)[0][0].length;
+/* 2332 */       type = " 3D byte";
+/*      */     }
+/* 2334 */     else if ((buffer instanceof short[][][])) {
+/* 2335 */       leni = ((short[][][])buffer).length;
+/* 2336 */       lenj = ((short[][][])(short[][][])buffer)[0].length;
+/* 2337 */       lenk = ((short[][][])(short[][][])buffer)[0][0].length;
+/* 2338 */       type = " 3D short";
+/*      */     }
+/* 2340 */     else if ((buffer instanceof float[][][])) {
+/* 2341 */       leni = ((float[][][])buffer).length;
+/* 2342 */       lenj = ((float[][][])(float[][][])buffer)[0].length;
+/* 2343 */       lenk = ((float[][][])(float[][][])buffer)[0][0].length;
+/* 2344 */       type = " 3D float";
+/*      */     }
+/* 2346 */     else if ((buffer instanceof double[][][])) {
+/* 2347 */       leni = ((double[][][])buffer).length;
+/* 2348 */       lenj = ((double[][][])(double[][][])buffer)[0].length;
+/* 2349 */       lenk = ((double[][][])(double[][][])buffer)[0][0].length;
+/* 2350 */       type = " 3D double";
+/*      */     }
+/* 2352 */     throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnable to get a" + type + " buffer [" + (leni == 0 ? "" : new StringBuilder().append("").append(leni).toString()) + (lenj == 0 ? "" : new StringBuilder().append(",").append(lenj).toString()) + (lenk == 0 ? "" : new StringBuilder().append(",").append(lenk).toString()) + "] \n" + "from the short imageware [" + this.nx + "," + this.ny + "," + this.nz + "]\n" + "at the position (" + x + "," + y + "," + z + ") in direction " + direction + "\n" + "using " + border + ".\n" + "-------------------------------------------------------\n");
+/*      */   }
+/*      */ 
+/*      */   protected void throw_put(String direction, String border, Object buffer, int x, int y, int z)
+/*      */   {
+/* 2372 */     int leni = 0;
+/* 2373 */     int lenj = 0;
+/* 2374 */     int lenk = 0;
+/* 2375 */     String type = " unknown type";
+/* 2376 */     if ((buffer instanceof byte[])) {
+/* 2377 */       leni = ((byte[])buffer).length;
+/* 2378 */       type = " 1D byte";
+/*      */     }
+/* 2380 */     else if ((buffer instanceof short[])) {
+/* 2381 */       leni = ((short[])buffer).length;
+/* 2382 */       type = " 1D short";
+/*      */     }
+/* 2384 */     else if ((buffer instanceof float[])) {
+/* 2385 */       leni = ((float[])buffer).length;
+/* 2386 */       type = " 1D float";
+/*      */     }
+/* 2388 */     else if ((buffer instanceof double[])) {
+/* 2389 */       leni = ((double[])buffer).length;
+/* 2390 */       type = " 1D double";
+/*      */     }
+/* 2392 */     else if ((buffer instanceof byte[][])) {
+/* 2393 */       leni = ((byte[][])buffer).length;
+/* 2394 */       lenj = ((byte[][])(byte[][])buffer)[0].length;
+/* 2395 */       type = " 2D byte";
+/*      */     }
+/* 2397 */     else if ((buffer instanceof short[][])) {
+/* 2398 */       leni = ((short[][])buffer).length;
+/* 2399 */       lenj = ((short[][])(short[][])buffer)[0].length;
+/* 2400 */       type = " 2D short";
+/*      */     }
+/* 2402 */     else if ((buffer instanceof float[][])) {
+/* 2403 */       leni = ((float[][])buffer).length;
+/* 2404 */       lenj = ((float[][])(float[][])buffer)[0].length;
+/* 2405 */       type = " 2D float";
+/*      */     }
+/* 2407 */     else if ((buffer instanceof double[][])) {
+/* 2408 */       leni = ((double[][])buffer).length;
+/* 2409 */       lenj = ((double[][])(double[][])buffer)[0].length;
+/* 2410 */       type = " 2D double";
+/*      */     }
+/* 2412 */     else if ((buffer instanceof byte[][][])) {
+/* 2413 */       leni = ((byte[][][])buffer).length;
+/* 2414 */       lenj = ((byte[][][])(byte[][][])buffer)[0].length;
+/* 2415 */       lenk = ((byte[][][])(byte[][][])buffer)[0][0].length;
+/* 2416 */       type = " 3D byte";
+/*      */     }
+/* 2418 */     else if ((buffer instanceof short[][][])) {
+/* 2419 */       leni = ((short[][][])buffer).length;
+/* 2420 */       lenj = ((short[][][])(short[][][])buffer)[0].length;
+/* 2421 */       lenk = ((short[][][])(short[][][])buffer)[0][0].length;
+/* 2422 */       type = " 3D short";
+/*      */     }
+/* 2424 */     else if ((buffer instanceof float[][][])) {
+/* 2425 */       leni = ((float[][][])buffer).length;
+/* 2426 */       lenj = ((float[][][])(float[][][])buffer)[0].length;
+/* 2427 */       lenk = ((float[][][])(float[][][])buffer)[0][0].length;
+/* 2428 */       type = " 3D float";
+/*      */     }
+/* 2430 */     else if ((buffer instanceof double[][][])) {
+/* 2431 */       leni = ((double[][][])buffer).length;
+/* 2432 */       lenj = ((double[][][])(double[][][])buffer)[0].length;
+/* 2433 */       lenk = ((double[][][])(double[][][])buffer)[0][0].length;
+/* 2434 */       type = " 3D double";
+/*      */     }
+/* 2436 */     throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnable to put a" + type + " buffer [" + (leni == 0 ? "" : new StringBuilder().append("").append(leni).toString()) + (lenj == 0 ? "" : new StringBuilder().append(",").append(lenj).toString()) + (lenk == 0 ? "" : new StringBuilder().append(",").append(lenk).toString()) + "] \n" + "into the short imageware [" + this.nx + "," + this.ny + "," + this.nz + "]\n" + "at the position (" + x + "," + y + "," + z + ") in direction " + direction + "\n" + "using " + border + ".\n" + "-------------------------------------------------------\n");
+/*      */   }
+/*      */ 
+/*      */   public Object[] getVolume()
+/*      */   {
+/* 2464 */     return this.data;
+/*      */   }
+/*      */ 
+/*      */   public byte[] getSliceByte(int z)
+/*      */   {
+/* 2478 */     return null;
+/*      */   }
+/*      */ 
+/*      */   public short[] getSliceShort(int z)
+/*      */   {
+/* 2490 */     return (short[])this.data[z];
+/*      */   }
+/*      */ 
+/*      */   public float[] getSliceFloat(int z)
+/*      */   {
+/* 2506 */     return null;
+/*      */   }
+/*      */ 
+/*      */   public double[] getSliceDouble(int z)
+/*      */   {
+/* 2520 */     return null;
+/*      */   }
+/*      */ 
+/*      */   private void allocate()
+/*      */   {
+/*      */     try
+/*      */     {
+/* 2528 */       this.data = new Object[this.nz];
+/* 2529 */       this.nxy = (this.nx * this.ny);
+/* 2530 */       for (int z = 0; z < this.nz; z++)
+/* 2531 */         this.data[z] = new short[this.nxy];
+/*      */     }
+/*      */     catch (Exception e) {
+/* 2534 */       throw_constructor(this.nx, this.ny, this.nz);
+/*      */     }
+/*      */   }
+/*      */ }
+
+/* Location:           C:\Users\BHUSHANNK\Downloads\Watershed_\
+ * Qualified Name:     imageware.ShortBuffer
+ * JD-Core Version:    0.6.2
+ */

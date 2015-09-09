@@ -1,0 +1,81 @@
+/*     */ package imageware;
+/*     */ 
+/*     */ public final class FMath
+/*     */ {
+/*     */   public static int floor(float f)
+/*     */   {
+/*  24 */     if (f >= 0.0F) return (int)f;
+/*     */ 
+/*  26 */     int iAdd = (int)f - 1;
+/*  27 */     return (int)(f - iAdd) + iAdd;
+/*     */   }
+/*     */ 
+/*     */   public static int floor(double d)
+/*     */   {
+/*  40 */     if (d >= 0.0D) return (int)d;
+/*     */ 
+/*  42 */     int iAdd = (int)d - 1;
+/*  43 */     return (int)(d - iAdd) + iAdd;
+/*     */   }
+/*     */ 
+/*     */   public static int ceil(float f)
+/*     */   {
+/*  56 */     float mf = -f;
+/*  57 */     if (mf >= 0.0F) return -(int)mf;
+/*     */ 
+/*  59 */     int iAdd = (int)mf - 1;
+/*  60 */     return -((int)(mf - iAdd) + iAdd);
+/*     */   }
+/*     */ 
+/*     */   public static int ceil(double d)
+/*     */   {
+/*  73 */     double md = -d;
+/*  74 */     if (md >= 0.0D) return -(int)md;
+/*     */ 
+/*  76 */     int iAdd = (int)md - 1;
+/*  77 */     return -((int)(md - iAdd) + iAdd);
+/*     */   }
+/*     */ 
+/*     */   public static int round(float f)
+/*     */   {
+/*  87 */     float f05 = f + 0.5F;
+/*  88 */     if (f05 >= 0.0D) return (int)f05;
+/*     */ 
+/*  90 */     int iAdd = (int)f05 - 1;
+/*  91 */     return (int)(f05 - iAdd) + iAdd;
+/*     */   }
+/*     */ 
+/*     */   public static int round(double d)
+/*     */   {
+/* 101 */     double d05 = d + 0.5D;
+/* 102 */     if (d05 >= 0.0D) return (int)d05;
+/*     */ 
+/* 104 */     int iAdd = (int)d05 - 1;
+/* 105 */     return (int)(d05 - iAdd) + iAdd;
+/*     */   }
+/*     */ 
+/*     */   public static float min(float f1, float f2)
+/*     */   {
+/* 111 */     return f1 < f2 ? f1 : f2;
+/*     */   }
+/*     */ 
+/*     */   public static double min(double d1, double d2)
+/*     */   {
+/* 116 */     return d1 < d2 ? d1 : d2;
+/*     */   }
+/*     */ 
+/*     */   public static float max(float f1, float f2)
+/*     */   {
+/* 121 */     return f1 > f2 ? f1 : f2;
+/*     */   }
+/*     */ 
+/*     */   public static double max(double d1, double d2)
+/*     */   {
+/* 126 */     return d1 > d2 ? d1 : d2;
+/*     */   }
+/*     */ }
+
+/* Location:           C:\Users\BHUSHANNK\Downloads\Watershed_\
+ * Qualified Name:     imageware.FMath
+ * JD-Core Version:    0.6.2
+ */

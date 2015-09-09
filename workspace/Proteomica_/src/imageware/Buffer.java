@@ -1,0 +1,179 @@
+package imageware;
+
+public abstract interface Buffer
+{
+  public abstract int getType();
+
+  public abstract String getTypeToString();
+
+  public abstract int getDimension();
+
+  public abstract int[] getSize();
+
+  public abstract int getSizeX();
+
+  public abstract int getSizeY();
+
+  public abstract int getSizeZ();
+
+  public abstract int getWidth();
+
+  public abstract int getHeight();
+
+  public abstract int getDepth();
+
+  public abstract int getTotalSize();
+
+  public abstract boolean isSameSize(ImageWare paramImageWare);
+
+  public abstract void getX(int paramInt1, int paramInt2, int paramInt3, ImageWare paramImageWare);
+
+  public abstract void getY(int paramInt1, int paramInt2, int paramInt3, ImageWare paramImageWare);
+
+  public abstract void getZ(int paramInt1, int paramInt2, int paramInt3, ImageWare paramImageWare);
+
+  public abstract void getXY(int paramInt1, int paramInt2, int paramInt3, ImageWare paramImageWare);
+
+  public abstract void getXZ(int paramInt1, int paramInt2, int paramInt3, ImageWare paramImageWare);
+
+  public abstract void getYZ(int paramInt1, int paramInt2, int paramInt3, ImageWare paramImageWare);
+
+  public abstract void getXYZ(int paramInt1, int paramInt2, int paramInt3, ImageWare paramImageWare);
+
+  public abstract void getX(int paramInt1, int paramInt2, int paramInt3, byte[] paramArrayOfByte);
+
+  public abstract void getY(int paramInt1, int paramInt2, int paramInt3, byte[] paramArrayOfByte);
+
+  public abstract void getZ(int paramInt1, int paramInt2, int paramInt3, byte[] paramArrayOfByte);
+
+  public abstract void getXY(int paramInt1, int paramInt2, int paramInt3, byte[][] paramArrayOfByte);
+
+  public abstract void getXZ(int paramInt1, int paramInt2, int paramInt3, byte[][] paramArrayOfByte);
+
+  public abstract void getYZ(int paramInt1, int paramInt2, int paramInt3, byte[][] paramArrayOfByte);
+
+  public abstract void getXYZ(int paramInt1, int paramInt2, int paramInt3, byte[][][] paramArrayOfByte);
+
+  public abstract void getX(int paramInt1, int paramInt2, int paramInt3, short[] paramArrayOfShort);
+
+  public abstract void getY(int paramInt1, int paramInt2, int paramInt3, short[] paramArrayOfShort);
+
+  public abstract void getZ(int paramInt1, int paramInt2, int paramInt3, short[] paramArrayOfShort);
+
+  public abstract void getXY(int paramInt1, int paramInt2, int paramInt3, short[][] paramArrayOfShort);
+
+  public abstract void getXZ(int paramInt1, int paramInt2, int paramInt3, short[][] paramArrayOfShort);
+
+  public abstract void getYZ(int paramInt1, int paramInt2, int paramInt3, short[][] paramArrayOfShort);
+
+  public abstract void getXYZ(int paramInt1, int paramInt2, int paramInt3, short[][][] paramArrayOfShort);
+
+  public abstract void getX(int paramInt1, int paramInt2, int paramInt3, float[] paramArrayOfFloat);
+
+  public abstract void getY(int paramInt1, int paramInt2, int paramInt3, float[] paramArrayOfFloat);
+
+  public abstract void getZ(int paramInt1, int paramInt2, int paramInt3, float[] paramArrayOfFloat);
+
+  public abstract void getXY(int paramInt1, int paramInt2, int paramInt3, float[][] paramArrayOfFloat);
+
+  public abstract void getXZ(int paramInt1, int paramInt2, int paramInt3, float[][] paramArrayOfFloat);
+
+  public abstract void getYZ(int paramInt1, int paramInt2, int paramInt3, float[][] paramArrayOfFloat);
+
+  public abstract void getXYZ(int paramInt1, int paramInt2, int paramInt3, float[][][] paramArrayOfFloat);
+
+  public abstract void getX(int paramInt1, int paramInt2, int paramInt3, double[] paramArrayOfDouble);
+
+  public abstract void getY(int paramInt1, int paramInt2, int paramInt3, double[] paramArrayOfDouble);
+
+  public abstract void getZ(int paramInt1, int paramInt2, int paramInt3, double[] paramArrayOfDouble);
+
+  public abstract void getXY(int paramInt1, int paramInt2, int paramInt3, double[][] paramArrayOfDouble);
+
+  public abstract void getXZ(int paramInt1, int paramInt2, int paramInt3, double[][] paramArrayOfDouble);
+
+  public abstract void getYZ(int paramInt1, int paramInt2, int paramInt3, double[][] paramArrayOfDouble);
+
+  public abstract void getXYZ(int paramInt1, int paramInt2, int paramInt3, double[][][] paramArrayOfDouble);
+
+  public abstract void putX(int paramInt1, int paramInt2, int paramInt3, ImageWare paramImageWare);
+
+  public abstract void putY(int paramInt1, int paramInt2, int paramInt3, ImageWare paramImageWare);
+
+  public abstract void putZ(int paramInt1, int paramInt2, int paramInt3, ImageWare paramImageWare);
+
+  public abstract void putXY(int paramInt1, int paramInt2, int paramInt3, ImageWare paramImageWare);
+
+  public abstract void putXZ(int paramInt1, int paramInt2, int paramInt3, ImageWare paramImageWare);
+
+  public abstract void putYZ(int paramInt1, int paramInt2, int paramInt3, ImageWare paramImageWare);
+
+  public abstract void putXYZ(int paramInt1, int paramInt2, int paramInt3, ImageWare paramImageWare);
+
+  public abstract void putX(int paramInt1, int paramInt2, int paramInt3, byte[] paramArrayOfByte);
+
+  public abstract void putY(int paramInt1, int paramInt2, int paramInt3, byte[] paramArrayOfByte);
+
+  public abstract void putZ(int paramInt1, int paramInt2, int paramInt3, byte[] paramArrayOfByte);
+
+  public abstract void putXY(int paramInt1, int paramInt2, int paramInt3, byte[][] paramArrayOfByte);
+
+  public abstract void putXZ(int paramInt1, int paramInt2, int paramInt3, byte[][] paramArrayOfByte);
+
+  public abstract void putYZ(int paramInt1, int paramInt2, int paramInt3, byte[][] paramArrayOfByte);
+
+  public abstract void putXYZ(int paramInt1, int paramInt2, int paramInt3, byte[][][] paramArrayOfByte);
+
+  public abstract void putX(int paramInt1, int paramInt2, int paramInt3, short[] paramArrayOfShort);
+
+  public abstract void putY(int paramInt1, int paramInt2, int paramInt3, short[] paramArrayOfShort);
+
+  public abstract void putZ(int paramInt1, int paramInt2, int paramInt3, short[] paramArrayOfShort);
+
+  public abstract void putXY(int paramInt1, int paramInt2, int paramInt3, short[][] paramArrayOfShort);
+
+  public abstract void putXZ(int paramInt1, int paramInt2, int paramInt3, short[][] paramArrayOfShort);
+
+  public abstract void putYZ(int paramInt1, int paramInt2, int paramInt3, short[][] paramArrayOfShort);
+
+  public abstract void putXYZ(int paramInt1, int paramInt2, int paramInt3, short[][][] paramArrayOfShort);
+
+  public abstract void putX(int paramInt1, int paramInt2, int paramInt3, float[] paramArrayOfFloat);
+
+  public abstract void putY(int paramInt1, int paramInt2, int paramInt3, float[] paramArrayOfFloat);
+
+  public abstract void putZ(int paramInt1, int paramInt2, int paramInt3, float[] paramArrayOfFloat);
+
+  public abstract void putXY(int paramInt1, int paramInt2, int paramInt3, float[][] paramArrayOfFloat);
+
+  public abstract void putXZ(int paramInt1, int paramInt2, int paramInt3, float[][] paramArrayOfFloat);
+
+  public abstract void putYZ(int paramInt1, int paramInt2, int paramInt3, float[][] paramArrayOfFloat);
+
+  public abstract void putXYZ(int paramInt1, int paramInt2, int paramInt3, float[][][] paramArrayOfFloat);
+
+  public abstract void putX(int paramInt1, int paramInt2, int paramInt3, double[] paramArrayOfDouble);
+
+  public abstract void putY(int paramInt1, int paramInt2, int paramInt3, double[] paramArrayOfDouble);
+
+  public abstract void putZ(int paramInt1, int paramInt2, int paramInt3, double[] paramArrayOfDouble);
+
+  public abstract void putXY(int paramInt1, int paramInt2, int paramInt3, double[][] paramArrayOfDouble);
+
+  public abstract void putXZ(int paramInt1, int paramInt2, int paramInt3, double[][] paramArrayOfDouble);
+
+  public abstract void putYZ(int paramInt1, int paramInt2, int paramInt3, double[][] paramArrayOfDouble);
+
+  public abstract void putXYZ(int paramInt1, int paramInt2, int paramInt3, double[][][] paramArrayOfDouble);
+
+  public abstract Object[] getVolume();
+
+  public abstract byte[] getSliceByte(int paramInt);
+
+  public abstract short[] getSliceShort(int paramInt);
+
+  public abstract float[] getSliceFloat(int paramInt);
+
+  public abstract double[] getSliceDouble(int paramInt);
+}
+

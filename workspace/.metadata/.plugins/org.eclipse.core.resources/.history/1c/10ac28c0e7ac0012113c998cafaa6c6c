@@ -1,0 +1,156 @@
+/*     */ package imageware;
+/*     */ 
+/*     */ public class Convolver
+/*     */ {
+/*  15 */   private static double tolerance = 1.E-005D;
+/*     */ 
+/*     */   public static double[] convolveFIR(double[] input, double[] kernel)
+/*     */   {
+/*  27 */     int l = input.length;
+/*  28 */     if (l <= 1)
+/*  29 */       throw new IllegalArgumentException("convolveFIR: input signal too short");
+/*  30 */     double[] output = new double[l];
+/*     */ 
+/*  32 */     int indexq = kernel.length - 1;
+/*  33 */     int indexp = 0;
+/*  34 */     int n2 = 2 * (l - 1);
+/*  35 */     int origin = kernel.length / 2;
+/*  36 */     int m = 1 + origin - kernel.length;
+/*  37 */     m -= (m < 0L ? n2 * ((m + 1 - n2) / n2) : n2 * (m / n2));
+/*     */ 
+/*  39 */     for (int i = 0; i < l; i++) {
+/*  40 */       int j = -kernel.length;
+/*  41 */       int k = m;
+/*  42 */       indexq = kernel.length - 1;
+/*  43 */       double Sum = 0.0D;
+/*  44 */       while (j < 0) {
+/*  45 */         indexp = k;
+/*  46 */         int kp = k - l < j ? j : k - l;
+/*  47 */         if (kp < 0L) {
+/*  48 */           for (int n = kp; n < 0; n++) {
+/*  49 */             Sum += input[indexp] * kernel[indexq];
+/*  50 */             indexq--;
+/*  51 */             indexp++;
+/*     */           }
+/*  53 */           k -= kp;
+/*  54 */           j -= kp;
+/*     */         }
+/*  56 */         indexp = n2 - k;
+/*  57 */         int km = k - n2 < j ? j : k - n2;
+/*  58 */         if (km < 0L) {
+/*  59 */           for (int n = km; n < 0; n++) {
+/*  60 */             Sum += input[indexp] * kernel[indexq];
+/*  61 */             indexq--;
+/*  62 */             indexp--;
+/*     */           }
+/*  64 */           j -= km;
+/*     */         }
+/*  66 */         k = 0;
+/*     */       }
+/*  68 */       m++; if (m == n2) {
+/*  69 */         m = 0;
+/*     */       }
+/*  71 */       output[i] = Sum;
+/*     */     }
+/*  73 */     return output;
+/*     */   }
+/*     */ 
+/*     */   public static double[] convolveIIR(double[] input, double[] poles)
+/*     */   {
+/*  83 */     double lambda = 1.0D;
+/*  84 */     int l = input.length;
+/*  85 */     double[] output = new double[l];
+/*  86 */     for (int k = 0; k < poles.length; k++) {
+/*  87 */       lambda = lambda * (1.0D - poles[k]) * (1.0D - 1.0D / poles[k]);
+/*     */     }
+/*  89 */     for (int n = 0; n < l; n++) {
+/*  90 */       input[n] *= lambda;
+/*     */     }
+/*  92 */     for (int k = 0; k < poles.length; k++) {
+/*  93 */       output[0] = getInitialCausalCoefficientMirror(output, poles[k]);
+/*  94 */       for (int n = 1; n < l; n++) {
+/*  95 */         output[n] += poles[k] * output[(n - 1)];
+/*     */       }
+/*  97 */       output[(l - 1)] = getInitialAntiCausalCoefficientMirror(output, poles[k]);
+/*  98 */       for (int n = l - 2; 0 <= n; n--) {
+/*  99 */         poles[k] *= (output[(n + 1)] - output[n]);
+/*     */       }
+/*     */     }
+/* 102 */     return output;
+/*     */   }
+/*     */ 
+/*     */   public static double[] convolveIIR2(double[] input, double b1, double b2)
+/*     */   {
+/* 132 */     int l = input.length;
+/* 133 */     int n2 = 2 * l;
+/*     */ 
+/* 135 */     double a1 = -(b2 + 1.0D) * (1.0D - b1 + b2) / ((b2 - 1.0D) * (1.0D + b1 + b2));
+/* 136 */     double a2 = -a1 * b2 * b1 / (b2 + 1.0D);
+/*     */ 
+/* 139 */     double[] cBuffer = new double[n2];
+/*     */ 
+/* 142 */     double[] sBuffer = new double[n2];
+/*     */ 
+/* 145 */     for (int n = 0; n < l; n++) {
+/* 146 */       sBuffer[n] = input[n];
+/* 147 */       sBuffer[(n2 - n - 1)] = input[n];
+/*     */     }
+/*     */ 
+/* 153 */     int n0 = 2;
+/* 154 */     if ((tolerance > 0.0D) && (b2 != 1.0D)) {
+/* 155 */       n0 = n2 - (int)Math.ceil(2.0D * Math.log(tolerance) / Math.log(b2));
+/*     */     }
+/*     */ 
+/* 158 */     if (n0 < 2) {
+/* 159 */       n0 = 2;
+/*     */     }
+/*     */ 
+/* 162 */     cBuffer[(n0 - 1)] = 0.0D;
+/* 163 */     cBuffer[(n0 - 2)] = 0.0D;
+/* 164 */     for (int n = n0; n < n2; n++) {
+/* 165 */       cBuffer[n] = (a1 * sBuffer[n] + a2 * sBuffer[(n - 1)] + b1 * cBuffer[(n - 1)] - b2 * cBuffer[(n - 2)]);
+/*     */     }
+/*     */ 
+/* 168 */     cBuffer[0] = (a1 * sBuffer[0] + a2 * sBuffer[(n2 - 1)] + b1 * cBuffer[(n2 - 1)] - b2 * cBuffer[(n2 - 2)]);
+/* 169 */     cBuffer[1] = (a1 * sBuffer[1] + a2 * sBuffer[0] + b1 * cBuffer[0] - b2 * cBuffer[(n2 - 1)]);
+/*     */ 
+/* 173 */     for (int n = 2; n < n2; n++) {
+/* 174 */       cBuffer[n] = (a1 * sBuffer[n] + a2 * sBuffer[(n - 1)] + b1 * cBuffer[(n - 1)] - b2 * cBuffer[(n - 2)]);
+/*     */     }
+/*     */ 
+/* 178 */     double[] output = new double[l];
+/* 179 */     for (int n = 0; n < l; n++) {
+/* 180 */       output[n] = (cBuffer[n] + cBuffer[(n2 - n - 1)] - a1 * input[n]);
+/*     */     }
+/* 182 */     return output;
+/*     */   }
+/*     */ 
+/*     */   private static double getInitialAntiCausalCoefficientMirror(double[] c, double z)
+/*     */   {
+/* 189 */     return (z * c[(c.length - 2)] + c[(c.length - 1)]) * z / (z * z - 1.0D);
+/*     */   }
+/*     */ 
+/*     */   private static double getInitialCausalCoefficientMirror(double[] c, double z)
+/*     */   {
+/* 196 */     double z1 = z; double zn = Math.pow(z, c.length - 1);
+/* 197 */     double sum = c[0] + zn * c[(c.length - 1)];
+/* 198 */     int horizon = c.length;
+/*     */ 
+/* 200 */     if (0.0D < tolerance) {
+/* 201 */       horizon = 2 + (int)(Math.log(tolerance) / Math.log(Math.abs(z)));
+/* 202 */       horizon = horizon < c.length ? horizon : c.length;
+/*     */     }
+/* 204 */     zn *= zn;
+/* 205 */     for (int n = 1; n < horizon - 1; n++) {
+/* 206 */       zn /= z;
+/* 207 */       sum += (z1 + zn) * c[n];
+/* 208 */       z1 *= z;
+/*     */     }
+/* 210 */     return sum / (1.0D - Math.pow(z, 2 * c.length - 2));
+/*     */   }
+/*     */ }
+
+/* Location:           C:\Users\BHUSHANNK\Downloads\Watershed_\
+ * Qualified Name:     imageware.Convolver
+ * JD-Core Version:    0.6.2
+ */

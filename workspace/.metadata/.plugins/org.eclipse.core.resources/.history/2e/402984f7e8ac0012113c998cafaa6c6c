@@ -1,0 +1,472 @@
+/*     */ package imageware;
+/*     */ 
+/*     */ import ij.ImageStack;
+/*     */ import ij.process.ShortProcessor;
+/*     */ import java.awt.Image;
+/*     */ import java.util.Random;
+/*     */ 
+/*     */ public class ShortPointwise extends ShortAccess
+/*     */   implements Pointwise
+/*     */ {
+/*     */   protected ShortPointwise(int nx, int ny, int nz)
+/*     */   {
+/*  26 */     super(nx, ny, nz); } 
+/*  27 */   protected ShortPointwise(Image image, int mode) { super(image, mode); } 
+/*     */   protected ShortPointwise(ImageStack stack, int mode) {
+/*  29 */     super(stack, mode); } 
+/*  30 */   protected ShortPointwise(ImageStack stack, byte chan) { super(stack, chan); } 
+/*     */   protected ShortPointwise(byte[] array, int mode) {
+/*  32 */     super(array, mode); } 
+/*  33 */   protected ShortPointwise(byte[][] array, int mode) { super(array, mode); } 
+/*  34 */   protected ShortPointwise(byte[][][] array, int mode) { super(array, mode); } 
+/*  35 */   protected ShortPointwise(short[] array, int mode) { super(array, mode); } 
+/*  36 */   protected ShortPointwise(short[][] array, int mode) { super(array, mode); } 
+/*  37 */   protected ShortPointwise(short[][][] array, int mode) { super(array, mode); } 
+/*  38 */   protected ShortPointwise(float[] array, int mode) { super(array, mode); } 
+/*  39 */   protected ShortPointwise(float[][] array, int mode) { super(array, mode); } 
+/*  40 */   protected ShortPointwise(float[][][] array, int mode) { super(array, mode); } 
+/*  41 */   protected ShortPointwise(double[] array, int mode) { super(array, mode); } 
+/*  42 */   protected ShortPointwise(double[][] array, int mode) { super(array, mode); } 
+/*  43 */   protected ShortPointwise(double[][][] array, int mode) { super(array, mode); }
+/*     */ 
+/*     */ 
+/*     */   public void fillConstant(double value)
+/*     */   {
+/*  51 */     short typedValue = (short)(int)value;
+/*  52 */     short[] slice = null;
+/*  53 */     for (int z = 0; z < this.nz; z++) {
+/*  54 */       slice = (short[])this.data[z];
+/*  55 */       for (int k = 0; k < this.nxy; k++)
+/*  56 */         slice[k] = typedValue;
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void fillRamp()
+/*     */   {
+/*  64 */     int off = 0;
+/*  65 */     short[] slice = null;
+/*  66 */     for (int z = 0; z < this.nz; z++) {
+/*  67 */       slice = (short[])this.data[z];
+/*  68 */       for (int k = 0; k < this.nxy; k++)
+/*  69 */         slice[k] = ((short)(off + k));
+/*  70 */       off += this.nxy;
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void fillGaussianNoise(double amplitude)
+/*     */   {
+/*  79 */     Random rnd = new Random();
+/*  80 */     short[] slice = null;
+/*  81 */     for (int z = 0; z < this.nz; z++) {
+/*  82 */       slice = (short[])this.data[z];
+/*  83 */       for (int k = 0; k < this.nxy; k++)
+/*  84 */         slice[k] = ((short)(int)(rnd.nextGaussian() * amplitude));
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void fillUniformNoise(double amplitude)
+/*     */   {
+/*  95 */     Random rnd = new Random();
+/*  96 */     short[] slice = null;
+/*  97 */     amplitude *= 2.0D;
+/*  98 */     for (int z = 0; z < this.nz; z++) {
+/*  99 */       slice = (short[])this.data[z];
+/* 100 */       for (int k = 0; k < this.nxy; k++)
+/* 101 */         slice[k] = ((short)(int)((rnd.nextDouble() - 0.5D) * amplitude));
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void fillSaltPepper(double amplitudeSalt, double amplitudePepper, double percentageSalt, double percentagePepper)
+/*     */   {
+/* 115 */     Random rnd = new Random();
+/* 116 */     short[] slice = null;
+/*     */ 
+/* 118 */     if (percentageSalt > 0.0D) {
+/* 119 */       double nbSalt = this.nxy * this.nz / percentageSalt;
+/* 120 */       for (int k = 0; k < nbSalt; k++) {
+/* 121 */         int index = (int)(rnd.nextDouble() * this.nxy);
+/* 122 */         int z = (int)(rnd.nextDouble() * this.nz);
+/* 123 */         ((short[])this.data[z])[index] = ((short)(int)(rnd.nextDouble() * amplitudeSalt));
+/*     */       }
+/*     */     }
+/* 126 */     if (percentagePepper > 0.0D) {
+/* 127 */       double nbPepper = this.nxy * this.nz / percentagePepper;
+/* 128 */       for (int k = 0; k < nbPepper; k++) {
+/* 129 */         int index = (int)(rnd.nextDouble() * this.nxy);
+/* 130 */         int z = (int)(rnd.nextDouble() * this.nz);
+/* 131 */         ((short[])this.data[z])[index] = ((short)(int)(-rnd.nextDouble() * amplitudeSalt));
+/*     */       }
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public ImageStack buildImageStack()
+/*     */   {
+/* 142 */     ImageStack imagestack = new ImageStack(this.nx, this.ny);
+/* 143 */     for (int z = 0; z < this.nz; z++) {
+/* 144 */       ShortProcessor ip = new ShortProcessor(this.nx, this.ny);
+/* 145 */       short[] pix = (short[])ip.getPixels();
+/* 146 */       for (int k = 0; k < this.nxy; k++)
+/* 147 */         pix[k] = ((short[])(short[])this.data[z])[k];
+/* 148 */       imagestack.addSlice("" + z, ip);
+/*     */     }
+/* 150 */     return imagestack;
+/*     */   }
+/*     */ 
+/*     */   public void invert()
+/*     */   {
+/* 158 */     double max = -1.797693134862316E+308D;
+/*     */ 
+/* 160 */     for (int z = 0; z < this.nz; z++) {
+/* 161 */       short[] slice = (short[])this.data[z];
+/* 162 */       for (int k = 0; k < this.nxy; k++) {
+/* 163 */         if ((slice[k] & 0xFFFF) > max)
+/* 164 */           max = slice[k] & 0xFFFF;
+/*     */       }
+/*     */     }
+/* 167 */     double cst = max;
+/* 168 */     for (int z = 0; z < this.nz; z++) {
+/* 169 */       short[] slice = (short[])this.data[z];
+/* 170 */       for (int k = 0; k < this.nxy; k++)
+/* 171 */         slice[k] = ((short)(int)(max - (slice[k] & 0xFFFF)));
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void negate()
+/*     */   {
+/* 181 */     for (int z = 0; z < this.nz; z++) {
+/* 182 */       short[] slice = (short[])this.data[z];
+/* 183 */       for (int k = 0; k < this.nxy; k++)
+/* 184 */         slice[k] = ((short)(int)-(slice[k] & 0xFFFF));
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void clip()
+/*     */   {
+/* 193 */     clip(0.0D, 255.0D);
+/*     */   }
+/*     */ 
+/*     */   public void clip(double minLevel, double maxLevel)
+/*     */   {
+/* 204 */     for (int z = 0; z < this.nz; z++) {
+/* 205 */       short[] slice = (short[])this.data[z];
+/*     */ 
+/* 207 */       short min = (short)(int)minLevel;
+/* 208 */       short max = (short)(int)maxLevel;
+/* 209 */       for (int k = 0; k < this.nxy; k++) {
+/* 210 */         short value = (short)(slice[k] & 0xFFFF);
+/* 211 */         if (value < min)
+/* 212 */           slice[k] = min;
+/* 213 */         if (value > max)
+/* 214 */           slice[k] = max;
+/*     */       }
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void rescale()
+/*     */   {
+/* 223 */     double maxImage = -1.797693134862316E+308D;
+/* 224 */     double minImage = 1.7976931348623157E+308D;
+/*     */ 
+/* 226 */     for (int z = 0; z < this.nz; z++) {
+/* 227 */       short[] slice = (short[])this.data[z];
+/* 228 */       for (int k = 0; k < this.nxy; k++) {
+/* 229 */         if ((slice[k] & 0xFFFF) > maxImage)
+/* 230 */           maxImage = slice[k] & 0xFFFF;
+/* 231 */         if ((slice[k] & 0xFFFF) < minImage)
+/* 232 */           minImage = slice[k] & 0xFFFF;
+/*     */       }
+/*     */     }
+/*     */     double a;
+/* 236 */     if (minImage - maxImage == 0.0D) {
+/* 237 */       double a = 1.0D;
+/* 238 */       minImage = 128.0D;
+/*     */     }
+/*     */     else {
+/* 241 */       a = 255.0D / (maxImage - minImage);
+/*     */     }
+/* 243 */     for (int z = 0; z < this.nz; z++) {
+/* 244 */       short[] slice = (short[])this.data[z];
+/* 245 */       for (int k = 0; k < this.nxy; k++)
+/* 246 */         slice[k] = ((short)(int)(a * ((slice[k] & 0xFFFF) - minImage)));
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void rescale(double minLevel, double maxLevel)
+/*     */   {
+/* 258 */     double maxImage = -1.797693134862316E+308D;
+/* 259 */     double minImage = 1.7976931348623157E+308D;
+/*     */ 
+/* 261 */     for (int z = 0; z < this.nz; z++) {
+/* 262 */       short[] slice = (short[])this.data[z];
+/* 263 */       for (int k = 0; k < this.nxy; k++) {
+/* 264 */         if ((slice[k] & 0xFFFF) > maxImage)
+/* 265 */           maxImage = slice[k] & 0xFFFF;
+/* 266 */         if ((slice[k] & 0xFFFF) < minImage)
+/* 267 */           minImage = slice[k] & 0xFFFF;
+/*     */       }
+/*     */     }
+/*     */     double a;
+/* 271 */     if (minImage - maxImage == 0.0D) {
+/* 272 */       double a = 1.0D;
+/* 273 */       minImage = (maxLevel - minLevel) / 2.0D;
+/*     */     }
+/*     */     else {
+/* 276 */       a = (maxLevel - minLevel) / (maxImage - minImage);
+/*     */     }
+/* 278 */     for (int z = 0; z < this.nz; z++) {
+/* 279 */       short[] slice = (short[])this.data[z];
+/* 280 */       for (int k = 0; k < this.nxy; k++)
+/* 281 */         slice[k] = ((short)(int)(a * ((slice[k] & 0xFFFF) - minImage) + minLevel));
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void rescaleCenter(double minLevel, double maxLevel)
+/*     */   {
+/* 294 */     double maxImage = -1.797693134862316E+308D;
+/* 295 */     double minImage = 1.7976931348623157E+308D;
+/*     */ 
+/* 297 */     for (int z = 0; z < this.nz; z++) {
+/* 298 */       short[] slice = (short[])this.data[z];
+/* 299 */       for (int k = 0; k < this.nxy; k++) {
+/* 300 */         if ((slice[k] & 0xFFFF) > maxImage)
+/* 301 */           maxImage = slice[k] & 0xFFFF;
+/* 302 */         if ((slice[k] & 0xFFFF) < minImage)
+/* 303 */           minImage = slice[k] & 0xFFFF;
+/*     */       }
+/*     */     }
+/* 306 */     double center = (maxLevel + minLevel) / 2.0D;
+/*     */     double a;
+/* 308 */     if (minImage - maxImage == 0.0D) {
+/* 309 */       double a = 1.0D;
+/* 310 */       minImage = (maxLevel - minLevel) / 2.0D;
+/*     */     }
+/*     */     else
+/*     */     {
+/*     */       double a;
+/* 313 */       if (Math.abs(maxImage) > Math.abs(minImage))
+/* 314 */         a = (maxLevel - center) / Math.abs(maxImage);
+/*     */       else
+/* 316 */         a = (center - minLevel) / Math.abs(minImage);
+/*     */     }
+/* 318 */     for (int z = 0; z < this.nz; z++) {
+/* 319 */       short[] slice = (short[])this.data[z];
+/* 320 */       for (int k = 0; k < this.nxy; k++)
+/* 321 */         slice[k] = ((short)(int)(a * ((slice[k] & 0xFFFF) - minImage) + center));
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void abs()
+/*     */   {
+/*     */   }
+/*     */ 
+/*     */   public void log()
+/*     */   {
+/* 337 */     for (int z = 0; z < this.nz; z++) {
+/* 338 */       short[] slice = (short[])this.data[z];
+/* 339 */       for (int k = 0; k < this.nxy; k++)
+/* 340 */         slice[k] = ((short)(int)Math.log(slice[k]));
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void exp()
+/*     */   {
+/* 350 */     for (int z = 0; z < this.nz; z++) {
+/* 351 */       short[] slice = (short[])this.data[z];
+/* 352 */       for (int k = 0; k < this.nxy; k++)
+/* 353 */         slice[k] = ((short)(int)Math.exp(slice[k]));
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void sqrt()
+/*     */   {
+/* 363 */     for (int z = 0; z < this.nz; z++) {
+/* 364 */       short[] slice = (short[])this.data[z];
+/* 365 */       for (int k = 0; k < this.nxy; k++)
+/* 366 */         slice[k] = ((short)(int)Math.sqrt(slice[k]));
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void sqr()
+/*     */   {
+/* 376 */     for (int z = 0; z < this.nz; z++) {
+/* 377 */       short[] slice = (short[])this.data[z];
+/* 378 */       for (int k = 0; k < this.nxy; k++)
+/*     */       {
+/*     */         int tmp35_34 = k;
+/*     */         short[] tmp35_33 = slice; tmp35_33[tmp35_34] = ((short)(tmp35_33[tmp35_34] * slice[k]));
+/*     */       }
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void pow(double a)
+/*     */   {
+/* 391 */     for (int z = 0; z < this.nz; z++) {
+/* 392 */       short[] slice = (short[])this.data[z];
+/* 393 */       for (int k = 0; k < this.nxy; k++)
+/* 394 */         slice[k] = ((short)(int)Math.pow(slice[k], a));
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void add(double constant)
+/*     */   {
+/* 403 */     short cst = (short)(int)constant;
+/*     */ 
+/* 405 */     for (int z = 0; z < this.nz; z++) {
+/* 406 */       short[] slice = (short[])this.data[z];
+/* 407 */       for (int k = 0; k < this.nxy; tmp47_45++)
+/*     */       {
+/*     */         int tmp47_45 = k;
+/*     */         short[] tmp47_43 = slice; tmp47_43[tmp47_45] = ((short)(tmp47_43[tmp47_45] + cst));
+/*     */       }
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void multiply(double constant)
+/*     */   {
+/* 419 */     short cst = (short)(int)constant;
+/*     */ 
+/* 421 */     for (int z = 0; z < this.nz; z++) {
+/* 422 */       short[] slice = (short[])this.data[z];
+/* 423 */       for (int k = 0; k < this.nxy; tmp47_45++)
+/*     */       {
+/*     */         int tmp47_45 = k;
+/*     */         short[] tmp47_43 = slice; tmp47_43[tmp47_45] = ((short)(tmp47_43[tmp47_45] * cst));
+/*     */       }
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void subtract(double constant)
+/*     */   {
+/* 435 */     short cst = (short)(int)constant;
+/*     */ 
+/* 437 */     for (int z = 0; z < this.nz; z++) {
+/* 438 */       short[] slice = (short[])this.data[z];
+/* 439 */       for (int k = 0; k < this.nxy; tmp47_45++)
+/*     */       {
+/*     */         int tmp47_45 = k;
+/*     */         short[] tmp47_43 = slice; tmp47_43[tmp47_45] = ((short)(tmp47_43[tmp47_45] - cst));
+/*     */       }
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void divide(double constant)
+/*     */   {
+/* 451 */     if (constant == 0.0D) {
+/* 452 */       throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnable to divide because the constant is 0.\n-------------------------------------------------------\n");
+/*     */     }
+/*     */ 
+/* 458 */     short cst = (short)(int)constant;
+/*     */ 
+/* 460 */     for (int z = 0; z < this.nz; z++) {
+/* 461 */       short[] slice = (short[])this.data[z];
+/* 462 */       for (int k = 0; k < this.nxy; tmp63_61++)
+/*     */       {
+/*     */         int tmp63_61 = k;
+/*     */         short[] tmp63_59 = slice; tmp63_59[tmp63_61] = ((short)(tmp63_59[tmp63_61] / cst));
+/*     */       }
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void threshold(double thresholdValue)
+/*     */   {
+/* 477 */     threshold(thresholdValue, 0.0D, 255.0D);
+/*     */   }
+/*     */ 
+/*     */   public void threshold(double thresholdValue, double minLevel, double maxLevel)
+/*     */   {
+/* 491 */     short low = (short)(int)minLevel;
+/* 492 */     short high = (short)(int)maxLevel;
+/*     */ 
+/* 494 */     for (int z = 0; z < this.nz; z++) {
+/* 495 */       short[] slice = (short[])this.data[z];
+/* 496 */       for (int k = 0; k < this.nxy; k++)
+/* 497 */         slice[k] = ((slice[k] & 0xFFFF) > thresholdValue ? high : low);
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void thresholdSoft(double thresholdValue)
+/*     */   {
+/* 513 */     short zero = 0;
+/*     */ 
+/* 516 */     for (int z = 0; z < this.nz; z++) {
+/* 517 */       short[] slice = (short[])this.data[z];
+/* 518 */       for (int k = 0; k < this.nxy; k++) {
+/* 519 */         double pixel = slice[k] & 0xFFFF;
+/* 520 */         slice[k] = (pixel > thresholdValue ? (short)(int)(pixel - thresholdValue) : pixel <= -thresholdValue ? (short)(int)(pixel + thresholdValue) : zero);
+/*     */       }
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void thresholdHard(double thresholdValue)
+/*     */   {
+/* 537 */     short zero = 0;
+/*     */ 
+/* 540 */     for (int z = 0; z < this.nz; z++) {
+/* 541 */       short[] slice = (short[])this.data[z];
+/* 542 */       for (int k = 0; k < this.nxy; k++) {
+/* 543 */         double pixel = slice[k] & 0xFFFF;
+/* 544 */         if ((pixel > -thresholdValue) && (pixel < thresholdValue))
+/* 545 */           slice[k] = zero;
+/*     */       }
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void addGaussianNoise(double amplitude)
+/*     */   {
+/* 556 */     Random rnd = new Random();
+/* 557 */     short[] slice = null;
+/* 558 */     for (int z = 0; z < this.nz; z++) {
+/* 559 */       slice = (short[])this.data[z];
+/* 560 */       for (int k = 0; k < this.nxy; tmp54_52++)
+/*     */       {
+/*     */         int tmp54_52 = k;
+/*     */         short[] tmp54_50 = slice; tmp54_50[tmp54_52] = ((short)(tmp54_50[tmp54_52] + (short)(int)(rnd.nextGaussian() * amplitude)));
+/*     */       }
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void addUniformNoise(double amplitude)
+/*     */   {
+/* 572 */     Random rnd = new Random();
+/* 573 */     short[] slice = null;
+/* 574 */     amplitude *= 2.0D;
+/* 575 */     for (int z = 0; z < this.nz; z++) {
+/* 576 */       slice = (short[])this.data[z];
+/* 577 */       for (int k = 0; k < this.nxy; tmp60_58++)
+/*     */       {
+/*     */         int tmp60_58 = k;
+/*     */         short[] tmp60_56 = slice; tmp60_56[tmp60_58] = ((short)(tmp60_56[tmp60_58] + (short)(int)((rnd.nextDouble() - 0.5D) * amplitude)));
+/*     */       }
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void addSaltPepper(double amplitudeSalt, double amplitudePepper, double percentageSalt, double percentagePepper)
+/*     */   {
+/* 592 */     Random rnd = new Random();
+/* 593 */     short[] slice = null;
+/*     */ 
+/* 595 */     if (percentageSalt > 0.0D) {
+/* 596 */       double nbSalt = this.nxy * this.nz / percentageSalt;
+/* 597 */       for (int k = 0; k < nbSalt; tmp89_87++) {
+/* 598 */         int index = (int)(rnd.nextDouble() * this.nxy);
+/* 599 */         int z = (int)(rnd.nextDouble() * this.nz);
+/*     */         int tmp89_87 = index;
+/*     */         short[] tmp89_84 = ((short[])this.data[z]); tmp89_84[tmp89_87] = ((short)(tmp89_84[tmp89_87] + (short)(int)(rnd.nextDouble() * amplitudeSalt)));
+/*     */       }
+/*     */     }
+/* 603 */     if (percentagePepper > 0.0D) {
+/* 604 */       double nbPepper = this.nxy * this.nz / percentagePepper;
+/* 605 */       for (int k = 0; k < nbPepper; k++) {
+/* 606 */         int index = (int)(rnd.nextDouble() * this.nxy);
+/* 607 */         int z = (int)(rnd.nextDouble() * this.nz);
+/*     */         int tmp186_184 = index;
+/*     */         short[] tmp186_181 = ((short[])this.data[z]); tmp186_181[tmp186_184] = ((short)(tmp186_181[tmp186_184] - (short)(int)(rnd.nextDouble() * amplitudeSalt)));
+/*     */       }
+/*     */     }
+/*     */   }
+/*     */ }
+
+/* Location:           C:\Users\BHUSHANNK\Downloads\Watershed_\
+ * Qualified Name:     imageware.ShortPointwise
+ * JD-Core Version:    0.6.2
+ */

@@ -1,0 +1,134 @@
+/*     */ package watershedflooding;
+/*     */ 
+/*     */ import ij.ImagePlus;
+/*     */ import imageware.Builder;
+/*     */ import imageware.Display;
+/*     */ import imageware.ImageWare;
+/*     */ 
+/*     */ public class WatershedDisplay
+/*     */ {
+/*     */   public static byte[][] createLUTColor(int MAXBASINS)
+/*     */   {
+/*  12 */     byte[][] LUTColor = new byte[3][MAXBASINS];
+/*  13 */     for (int c = 0; c < 3; c++) {
+/*  14 */       for (int n = 0; n < 10; n++)
+/*  15 */         LUTColor[c][n] = 0;
+/*  16 */       for (int n = 10; n < MAXBASINS; n++)
+/*  17 */         LUTColor[c][n] = ((byte)(int)(10.0D + 235.0D * Math.random()));
+/*     */     }
+/*  19 */     return LUTColor;
+/*     */   }
+/*     */ 
+/*     */   public static void showBasins(ImageWare output, byte[][] LUTColor)
+/*     */   {
+/*  25 */     int nx = output.getSizeX();
+/*  26 */     int ny = output.getSizeY();
+/*  27 */     int nz = output.getSizeZ();
+/*  28 */     int size = nx * ny;
+/*  29 */     ImageWare r = Builder.create(nx, ny, nz, 1);
+/*  30 */     ImageWare g = Builder.create(nx, ny, nz, 1);
+/*  31 */     ImageWare b = Builder.create(nx, ny, nz, 1);
+/*     */ 
+/*  33 */     for (int z = 0; z < nz; z++) {
+/*  34 */       byte[] pixr = r.getSliceByte(z);
+/*  35 */       byte[] pixg = g.getSliceByte(z);
+/*  36 */       byte[] pixb = b.getSliceByte(z);
+/*  37 */       float[] pixout = output.getSliceFloat(z);
+/*  38 */       for (int index = 0; index < size; index++) {
+/*  39 */         int v = (int)pixout[index];
+/*  40 */         pixr[index] = LUTColor[0][v];
+/*  41 */         pixg[index] = LUTColor[1][v];
+/*  42 */         pixb[index] = LUTColor[2][v];
+/*     */       }
+/*     */     }
+/*  45 */     Display.showColor("Colorized Catchment Basins", r, g, b);
+/*     */   }
+/*     */ 
+/*     */   public static void showBinary(ImageWare output)
+/*     */   {
+/*  51 */     int nx = output.getSizeX();
+/*  52 */     int ny = output.getSizeY();
+/*  53 */     int nz = output.getSizeZ();
+/*  54 */     ImageWare out = Builder.create(nx, ny, nz, 1);
+/*     */ 
+/*  56 */     for (int z = 0; z < nz; z++)
+/*  57 */       for (int x = 0; x < nx; x++)
+/*  58 */         for (int y = 0; y < ny; y++) {
+/*  59 */           if (output.getPixel(x, y, z) < 2.0D)
+/*  60 */             out.putPixel(x, y, z, 255.0D);
+/*  61 */           if (output.getPixel(x - 1, y, z) < 2.0D)
+/*  62 */             out.putPixel(x, y - 1, z, 255.0D);
+/*  63 */           if (output.getPixel(x, y, z) < 2.0D)
+/*  64 */             out.putPixel(x + 1, y, z, 255.0D);
+/*  65 */           if (output.getPixel(x, y + 1, z) < 2.0D)
+/*  66 */             out.putPixel(x, y, z, 255.0D);
+/*     */         }
+/*  68 */     out.show("Binary watershed lines");
+/*     */   }
+/*     */ 
+/*     */   public static void showDams(ImageWare output)
+/*     */   {
+/*  74 */     int nx = output.getSizeX();
+/*  75 */     int ny = output.getSizeY();
+/*  76 */     int nz = output.getSizeZ();
+/*  77 */     ImageWare out = Builder.create(nx, ny, nz, 1);
+/*  78 */     out.fillConstant(255.0D);
+/*  79 */     for (int z = 0; z < nz; z++)
+/*  80 */       for (int x = 0; x < nx; x++)
+/*  81 */         for (int y = 0; y < ny; y++)
+/*  82 */           if (output.getPixel(x, y, z) == 0.0D)
+/*  83 */             out.putPixel(x, y, z, 0.0D);
+/*  84 */     out.show("Watershed Lines");
+/*     */   }
+/*     */ 
+/*     */   public static void showRedDams(ImageWare output, ImagePlus first)
+/*     */   {
+/*  90 */     ImageWare firstData = Builder.create(first);
+/*  91 */     int size = output.getSizeX() * output.getSizeY();
+/*  92 */     int nz = output.getSizeZ();
+/*  93 */     ImageWare original = firstData.convert(1);
+/*  94 */     ImageWare over = original.duplicate();
+/*  95 */     byte b255 = -1;
+/*  96 */     byte b0 = 0;
+/*  97 */     for (int z = 0; z < nz; z++) {
+/*  98 */       float[] pixOutput = output.getSliceFloat(z);
+/*  99 */       byte[] pixOver = over.getSliceByte(z);
+/* 100 */       byte[] pixOriginal = original.getSliceByte(z);
+/* 101 */       for (int index = 0; index < size; index++)
+/* 102 */         if (pixOutput[index] == 0.0D) {
+/* 103 */           pixOver[index] = b255;
+/* 104 */           pixOriginal[index] = b0;
+/*     */         }
+/*     */     }
+/* 107 */     Display.showColor("Dams", over, original, original);
+/*     */   }
+/*     */ 
+/*     */   public static void showComposite(ImageWare output, ImagePlus first)
+/*     */   {
+/* 116 */     ImageWare firstData = Builder.wrap(first);
+/* 117 */     int nx = output.getSizeX();
+/* 118 */     int ny = output.getSizeY();
+/* 119 */     int nz = output.getSizeZ();
+/* 120 */     int size = nx * ny;
+/* 121 */     ImageWare combine = Builder.create(nx, ny, nz, 3);
+/* 122 */     byte b255 = -1;
+/* 123 */     byte b0 = 0;
+/*     */ 
+/* 127 */     for (int z = 0; z < nz; z++) {
+/* 128 */       float[] pixOutput = output.getSliceFloat(z);
+/* 129 */       byte[] pixFirst = firstData.getSliceByte(z);
+/* 130 */       float[] pixCombine = combine.getSliceFloat(z);
+/* 131 */       for (int index = 0; index < size; index++)
+/* 132 */         if (pixOutput[index] == 0.0D)
+/* 133 */           pixCombine[index] = ((pixFirst[index] & 0xFF) / 10000.0F);
+/*     */         else
+/* 135 */           pixCombine[index] = ((pixFirst[index] & 0xFF) + pixOutput[index] / 10000.0F);
+/*     */     }
+/* 137 */     combine.show("Composite");
+/*     */   }
+/*     */ }
+
+/* Location:           C:\Users\BHUSHANNK\Downloads\Watershed_\
+ * Qualified Name:     watershedflooding.WatershedDisplay
+ * JD-Core Version:    0.6.2
+ */

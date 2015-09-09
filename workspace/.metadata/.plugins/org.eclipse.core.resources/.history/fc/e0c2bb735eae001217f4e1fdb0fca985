@@ -1,0 +1,29 @@
+import java.util.ArrayList;
+import java.util.Arrays;
+
+public class stringDouble
+{
+	public double[] stringToDouble(String str)
+	{
+		String[] ary = str.split(",");
+		ArrayList a1=new ArrayList(Arrays.asList(ary));
+		double[] d=new double[a1.size()];
+		for(int i=0;i<ary.length;i++){
+			System.out.println ("array["+i+"]\tlength("+ary[i].length()+")\t>"+ary[i]+"<");
+		}
+		for(int j=0;j<ary.length;j++)
+		{
+			d[j] = Double.parseDouble(ary[j]);
+		}
+		return d;
+	}
+	public static void main(String[] argv)
+	{
+		stringDouble t = new stringDouble();
+		double[] d1 = t.stringToDouble("234.3453,345.76,123.345,678.34234");
+		for(int j=0;j<d1.length;j++)
+		{
+			System.out.println("doublearray["+j+"]\t > "+d1[j]+" ");
+		}
+	}
+}

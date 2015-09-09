@@ -1,0 +1,109 @@
+/*     */ import ij.IJ;
+/*     */ import ij.ImagePlus;
+/*     */ import ij.Macro;
+/*     */ import ij.WindowManager;
+/*     */ import imageware.Builder;
+/*     */ import imageware.ImageWare;
+/*     */ import java.util.StringTokenizer;
+/*     */ import watershedflooding.MainDialog;
+/*     */ import watershedflooding.Processing;
+/*     */ 
+/*     */ public class Watershed_
+/*     */ {
+/*     */   public Watershed_()
+/*     */   {
+/*  18 */     if (IJ.versionLessThan("1.21a")) {
+/*  19 */       IJ.error("The version of ImageJ should be at least 1.21a");
+/*  20 */       return;
+/*     */     }
+/*  22 */     ImagePlus imp = WindowManager.getCurrentImage();
+/*  23 */     if (imp == null) {
+/*  24 */       IJ.showMessage("Image required.");
+/*  25 */       return;
+/*     */     }
+/*  27 */     if (imp.getType() != 0) {
+/*  28 */       IJ.showMessage("Image 8-bits required.");
+/*  29 */       return;
+/*     */     }
+/*     */ 
+/*  32 */     String options = Macro.getOptions();
+/*     */     MainDialog dlg;
+/*  34 */     if (options != null)
+/*     */     {
+/*  36 */       ImageWare original = Builder.wrap(imp);
+/*  37 */       ImageWare image = original.duplicate();
+/*     */ 
+/*  40 */       String blurringCommand = Macro.getValue(options, "blurring", "");
+/*  41 */       if (!blurringCommand.equals("")) {
+/*  42 */         String[] args = split(blurringCommand);
+/*  43 */         if (args.length != 1) {
+/*  44 */           IJ.error("The arguments of the blurring command are not valid. Correct example: blurring='3.0'");
+/*  45 */           return;
+/*     */         }
+/*  47 */         double sigma = new Double(args[0]).doubleValue();
+/*  48 */         if (sigma > 0.0D) {
+/*  49 */           IJ.showStatus("Gaussian blurring at " + sigma);
+/*  50 */           image.smoothGaussian(sigma, sigma, 0.0D);
+/*     */         }
+/*     */ 
+/*     */       }
+/*     */ 
+/*  55 */       String watershedCommand = Macro.getValue(options, "watershed", "");
+/*  56 */       if (!watershedCommand.equals("")) {
+/*  57 */         String[] args = split(watershedCommand);
+/*  58 */         if (args.length != 6) {
+/*  59 */           IJ.error("The arguments of the watershed command are not valid. Correct example: watershed='0 0 0 255 1 1'");
+/*  60 */           return;
+/*     */         }
+/*  62 */         boolean conn4 = args[1].equals("0");
+/*  63 */         int minLevel = new Integer(args[2]).intValue();
+/*  64 */         int maxLevel = new Integer(args[3]).intValue();
+/*  65 */         boolean progression = args[4].equals("1");
+/*  66 */         boolean animation = args[5].equals("1");
+/*  67 */         if (args[0].equals("1")) {
+/*  68 */           IJ.showStatus("Invert");
+/*  69 */           image.invert();
+/*     */         }
+/*  71 */         IJ.showStatus("Watershed from " + minLevel + " to " + maxLevel);
+/*  72 */         Processing process = new Processing(imp);
+/*  73 */         process.paramsWatershed(image, null, animation, conn4, progression, minLevel, maxLevel);
+/*  74 */         process.start("Start Watershed");
+/*     */ 
+/*  77 */         String displayCommand = Macro.getValue(options, "display", "");
+/*  78 */         if (!displayCommand.equals("")) {
+/*  79 */           String[] argsDisplay = split(displayCommand);
+/*  80 */           if (argsDisplay.length > 0) {
+/*  81 */             int[] display = new int[argsDisplay.length];
+/*  82 */             for (int k = 0; k < argsDisplay.length; k++) {
+/*  83 */               display[k] = new Integer(argsDisplay[k]).intValue();
+/*  84 */               if ((display[k] > 6) || (display[k] < 0)) {
+/*  85 */                 IJ.error("The 'display[" + k + "]' argument should be in the range [0..6]'");
+/*  86 */                 return;
+/*     */               }
+/*     */             }
+/*  89 */             process.paramsDisplay(display);
+/*     */           }
+/*     */         }
+/*     */       }
+/*     */     }
+/*     */     else {
+/*  95 */       Processing ws = new Processing(imp);
+/*  96 */       dlg = new MainDialog(imp, ws);
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   private String[] split(String s)
+/*     */   {
+/* 102 */     StringTokenizer t = new StringTokenizer(s);
+/* 103 */     String[] items = new String[t.countTokens()];
+/* 104 */     for (int k = 0; k < items.length; k++) {
+/* 105 */       items[k] = t.nextToken();
+/*     */     }
+/* 107 */     return items;
+/*     */   }
+/*     */ }
+
+/* Location:           C:\Users\BHUSHANNK\Downloads\Watershed_\
+ * Qualified Name:     Watershed_
+ * JD-Core Version:    0.6.2
+ */

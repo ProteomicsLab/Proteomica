@@ -1,0 +1,558 @@
+/*     */ package imageware;
+/*     */ 
+/*     */ import ij.ImagePlus;
+/*     */ import ij.gui.ImageWindow;
+/*     */ import ij.process.ByteProcessor;
+/*     */ import ij.process.ColorProcessor;
+/*     */ import ij.process.FloatProcessor;
+/*     */ import ij.process.ImageProcessor;
+/*     */ import ij.process.ShortProcessor;
+/*     */ import java.awt.Point;
+/*     */ 
+/*     */ public class ImageAccess
+/*     */ {
+/*     */   public static final int PATTERN_SQUARE_3x3 = 0;
+/*     */   public static final int PATTERN_CROSS_3x3 = 1;
+/*  31 */   private ImageWare imageware = null;
+/*  32 */   private int nx = 0;
+/*  33 */   private int ny = 0;
+/*     */ 
+/*     */   public ImageAccess(double[][] array)
+/*     */   {
+/*  42 */     if (array == null) {
+/*  43 */       throw new ArrayStoreException("Constructor: array == null.");
+/*     */     }
+/*  45 */     this.imageware = Builder.create(array);
+/*  46 */     this.nx = this.imageware.getSizeX();
+/*  47 */     this.ny = this.imageware.getSizeY();
+/*     */   }
+/*     */ 
+/*     */   public ImageAccess(ImageProcessor ip)
+/*     */   {
+/*  62 */     if (ip == null) {
+/*  63 */       throw new ArrayStoreException("Constructor: ImageProcessor == null.");
+/*     */     }
+/*  65 */     ImagePlus imp = new ImagePlus("", ip);
+/*  66 */     if ((ip instanceof ByteProcessor))
+/*  67 */       this.imageware = Builder.create(imp, 4);
+/*  68 */     else if ((ip instanceof ShortProcessor))
+/*  69 */       this.imageware = Builder.create(imp, 4);
+/*  70 */     else if ((ip instanceof FloatProcessor))
+/*  71 */       this.imageware = Builder.create(imp, 4);
+/*  72 */     this.nx = this.imageware.getSizeX();
+/*  73 */     this.ny = this.imageware.getSizeY();
+/*     */   }
+/*     */ 
+/*     */   public ImageAccess(ColorProcessor cp, int colorPlane)
+/*     */   {
+/*  90 */     if (cp == null) {
+/*  91 */       throw new ArrayStoreException("Constructor: ColorProcessor == null.");
+/*     */     }
+/*  93 */     if (colorPlane < 0) {
+/*  94 */       throw new ArrayStoreException("Constructor: colorPlane < 0.");
+/*     */     }
+/*  96 */     if (colorPlane > 2) {
+/*  97 */       throw new ArrayStoreException("Constructor: colorPlane > 2.");
+/*     */     }
+/*  99 */     this.nx = cp.getWidth();
+/* 100 */     this.ny = cp.getHeight();
+/* 101 */     int size = this.nx * this.ny;
+/* 102 */     ImagePlus imp = new ImagePlus("", cp);
+/* 103 */     this.imageware = new DoubleSet(imp.getStack(), (byte)colorPlane);
+/*     */   }
+/*     */ 
+/*     */   public ImageAccess(int nx, int ny)
+/*     */   {
+/* 116 */     this.imageware = new DoubleSet(nx, ny, 1);
+/* 117 */     this.nx = nx;
+/* 118 */     this.ny = ny;
+/*     */   }
+/*     */ 
+/*     */   public ImageWare getDataset()
+/*     */   {
+/* 127 */     return this.imageware;
+/*     */   }
+/*     */ 
+/*     */   public int getWidth()
+/*     */   {
+/* 136 */     return this.nx;
+/*     */   }
+/*     */ 
+/*     */   public int getHeight()
+/*     */   {
+/* 145 */     return this.ny;
+/*     */   }
+/*     */ 
+/*     */   public double getMaximum()
+/*     */   {
+/* 154 */     return this.imageware.getMaximum();
+/*     */   }
+/*     */ 
+/*     */   public double getMinimum()
+/*     */   {
+/* 163 */     return this.imageware.getMinimum();
+/*     */   }
+/*     */ 
+/*     */   public double getMean()
+/*     */   {
+/* 172 */     return this.imageware.getMean();
+/*     */   }
+/*     */ 
+/*     */   public double[][] getArrayPixels()
+/*     */   {
+/* 182 */     double[][] array = new double[this.nx][this.ny];
+/* 183 */     this.imageware.getXY(0, 0, 0, array);
+/* 184 */     return array;
+/*     */   }
+/*     */ 
+/*     */   public double[] getPixels()
+/*     */   {
+/* 193 */     return this.imageware.getSliceDouble(0);
+/*     */   }
+/*     */ 
+/*     */   public FloatProcessor createFloatProcessor()
+/*     */   {
+/* 203 */     FloatProcessor fp = new FloatProcessor(this.nx, this.ny);
+/* 204 */     double[] pixels = getPixels();
+/* 205 */     int size = pixels.length;
+/* 206 */     float[] fsrc = new float[size];
+/* 207 */     for (int k = 0; k < size; k++)
+/* 208 */       fsrc[k] = ((float)pixels[k]);
+/* 209 */     fp.setPixels(fsrc);
+/* 210 */     return fp;
+/*     */   }
+/*     */ 
+/*     */   public ByteProcessor createByteProcessor()
+/*     */   {
+/* 220 */     ByteProcessor bp = new ByteProcessor(this.nx, this.ny);
+/* 221 */     double[] pixels = getPixels();
+/* 222 */     int size = pixels.length;
+/* 223 */     byte[] bsrc = new byte[size];
+/*     */ 
+/* 225 */     for (int k = 0; k < size; k++) {
+/* 226 */       double p = pixels[k];
+/* 227 */       if (p < 0.0D)
+/* 228 */         p = 0.0D;
+/* 229 */       if (p > 255.0D)
+/* 230 */         p = 255.0D;
+/* 231 */       bsrc[k] = ((byte)(int)p);
+/*     */     }
+/* 233 */     bp.setPixels(bsrc);
+/* 234 */     return bp;
+/*     */   }
+/*     */ 
+/*     */   public ImageAccess duplicate()
+/*     */   {
+/* 244 */     double[][] array = new double[this.nx][this.ny];
+/* 245 */     this.imageware.getXY(0, 0, 0, array);
+/* 246 */     ImageAccess ia = new ImageAccess(array);
+/* 247 */     return ia;
+/*     */   }
+/*     */ 
+/*     */   public double getPixel(int x, int y)
+/*     */   {
+/* 261 */     return this.imageware.getPixel(x, y, 0, (byte)2);
+/*     */   }
+/*     */ 
+/*     */   public double getInterpolatedPixel(double x, double y)
+/*     */   {
+/* 277 */     return this.imageware.getInterpolatedPixel(x, y, 0.0D, (byte)2);
+/*     */   }
+/*     */ 
+/*     */   public void getColumn(int x, double[] column)
+/*     */   {
+/* 290 */     if (x < 0) {
+/* 291 */       throw new IndexOutOfBoundsException("getColumn: x < 0.");
+/*     */     }
+/* 293 */     if (x >= this.nx) {
+/* 294 */       throw new IndexOutOfBoundsException("getColumn: x >= nx.");
+/*     */     }
+/* 296 */     if (column == null) {
+/* 297 */       throw new ArrayStoreException("getColumn: column == null.");
+/*     */     }
+/*     */ 
+/* 300 */     if (column.length != this.ny) {
+/* 301 */       throw new ArrayStoreException("getColumn: column.length != ny.");
+/*     */     }
+/* 303 */     this.imageware.getBlockY(x, 0, 0, column, (byte)2);
+/*     */   }
+/*     */ 
+/*     */   public void getColumn(int x, int y, double[] column)
+/*     */   {
+/* 318 */     if (x < 0) {
+/* 319 */       throw new IndexOutOfBoundsException("getColumn: x < 0.");
+/*     */     }
+/* 321 */     if (x >= this.nx) {
+/* 322 */       throw new IndexOutOfBoundsException("getColumn: x >= nx.");
+/*     */     }
+/* 324 */     if (column == null) {
+/* 325 */       throw new ArrayStoreException("getColumn: column == null.");
+/*     */     }
+/* 327 */     this.imageware.getBlockY(x, y, 0, column, (byte)2);
+/*     */   }
+/*     */ 
+/*     */   public void getRow(int y, double[] row)
+/*     */   {
+/* 340 */     if (y < 0) {
+/* 341 */       throw new IndexOutOfBoundsException("getRow: y < 0.");
+/*     */     }
+/* 343 */     if (y >= this.ny) {
+/* 344 */       throw new IndexOutOfBoundsException("getRow: y >= ny.");
+/*     */     }
+/* 346 */     if (row == null) {
+/* 347 */       throw new ArrayStoreException("getColumn: row == null.");
+/*     */     }
+/* 349 */     if (row.length != this.nx) {
+/* 350 */       throw new ArrayStoreException("getColumn: row.length != nx.");
+/*     */     }
+/* 352 */     this.imageware.getBlockX(0, y, 0, row, (byte)2);
+/*     */   }
+/*     */ 
+/*     */   public void getRow(int x, int y, double[] row)
+/*     */   {
+/* 367 */     if (y < 0) {
+/* 368 */       throw new IndexOutOfBoundsException("getRow: y < 0.");
+/*     */     }
+/* 370 */     if (y >= this.ny) {
+/* 371 */       throw new IndexOutOfBoundsException("getRow: y >= ny.");
+/*     */     }
+/* 373 */     if (row == null) {
+/* 374 */       throw new ArrayStoreException("getRow: row == null.");
+/*     */     }
+/* 376 */     this.imageware.getBlockX(x, y, 0, row, (byte)2);
+/*     */   }
+/*     */ 
+/*     */   public void getNeighborhood(int x, int y, double[][] neigh)
+/*     */   {
+/* 410 */     this.imageware.getNeighborhoodXY(x, y, 0, neigh, (byte)2);
+/*     */   }
+/*     */ 
+/*     */   public void getPattern(int x, int y, double[] neigh, int pattern)
+/*     */   {
+/* 450 */     if (neigh == null) {
+/* 451 */       throw new ArrayStoreException("getPattern: neigh == null.");
+/*     */     }
+/*     */ 
+/* 454 */     double[][] block = new double[3][3];
+/* 455 */     this.imageware.getNeighborhoodXY(x, y, 0, block, (byte)2);
+/*     */ 
+/* 457 */     switch (pattern) {
+/*     */     case 0:
+/* 459 */       if (neigh.length != 9) {
+/* 460 */         throw new ArrayStoreException("getPattern: neigh.length != 9.");
+/*     */       }
+/* 462 */       neigh[0] = block[0][0];
+/* 463 */       neigh[1] = block[1][0];
+/* 464 */       neigh[2] = block[2][0];
+/* 465 */       neigh[3] = block[0][1];
+/* 466 */       neigh[4] = block[1][1];
+/* 467 */       neigh[5] = block[2][1];
+/* 468 */       neigh[6] = block[0][2];
+/* 469 */       neigh[7] = block[1][2];
+/* 470 */       neigh[8] = block[2][2];
+/* 471 */       break;
+/*     */     case 1:
+/* 474 */       if (neigh.length != 5) {
+/* 475 */         throw new ArrayStoreException("getPattern: neigh.length != 5");
+/*     */       }
+/* 477 */       neigh[0] = block[1][0];
+/* 478 */       neigh[1] = block[0][1];
+/* 479 */       neigh[2] = block[1][1];
+/* 480 */       neigh[3] = block[2][1];
+/* 481 */       neigh[4] = block[0][1];
+/* 482 */       break;
+/*     */     default:
+/* 485 */       throw new ArrayStoreException("getPattern: unexpected pattern.");
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void getSubImage(int x, int y, ImageAccess output)
+/*     */   {
+/* 502 */     if (output == null) {
+/* 503 */       throw new ArrayStoreException("getSubImage: output == null.");
+/*     */     }
+/* 505 */     if (x < 0) {
+/* 506 */       throw new ArrayStoreException("getSubImage: Incompatible image size");
+/*     */     }
+/* 508 */     if (y < 0) {
+/* 509 */       throw new ArrayStoreException("getSubImage: Incompatible image size");
+/*     */     }
+/* 511 */     if (x >= this.nx) {
+/* 512 */       throw new ArrayStoreException("getSubImage: Incompatible image size");
+/*     */     }
+/* 514 */     if (y >= this.ny) {
+/* 515 */       throw new ArrayStoreException("getSubImage: Incompatible image size");
+/*     */     }
+/* 517 */     int nxcopy = output.getWidth();
+/* 518 */     int nycopy = output.getHeight();
+/* 519 */     double[][] neigh = new double[nxcopy][nycopy];
+/* 520 */     this.imageware.getBlockXY(x, y, 0, neigh, (byte)2);
+/* 521 */     output.putArrayPixels(neigh);
+/*     */   }
+/*     */ 
+/*     */   public void putPixel(int x, int y, double value)
+/*     */   {
+/* 534 */     if (x < 0) {
+/* 535 */       throw new IndexOutOfBoundsException("putPixel: x < 0");
+/*     */     }
+/* 537 */     if (x >= this.nx) {
+/* 538 */       throw new IndexOutOfBoundsException("putPixel: x >= nx");
+/*     */     }
+/* 540 */     if (y < 0) {
+/* 541 */       throw new IndexOutOfBoundsException("putPixel:  y < 0");
+/*     */     }
+/* 543 */     if (y >= this.ny) {
+/* 544 */       throw new IndexOutOfBoundsException("putPixel:  y >= ny");
+/*     */     }
+/* 546 */     this.imageware.putPixel(x, y, 0, value);
+/*     */   }
+/*     */ 
+/*     */   public void putColumn(int x, double[] column)
+/*     */   {
+/* 557 */     if (x < 0) {
+/* 558 */       throw new IndexOutOfBoundsException("putColumn: x < 0.");
+/*     */     }
+/* 560 */     if (x >= this.nx) {
+/* 561 */       throw new IndexOutOfBoundsException("putColumn: x >= nx.");
+/*     */     }
+/* 563 */     if (column == null) {
+/* 564 */       throw new ArrayStoreException("putColumn: column == null.");
+/*     */     }
+/* 566 */     if (column.length != this.ny) {
+/* 567 */       throw new ArrayStoreException("putColumn: column.length != ny.");
+/*     */     }
+/* 569 */     this.imageware.putBoundedY(x, 0, 0, column);
+/*     */   }
+/*     */ 
+/*     */   public void putColumn(int x, int y, double[] column)
+/*     */   {
+/* 582 */     if (x < 0) {
+/* 583 */       throw new IndexOutOfBoundsException("putColumn: x < 0.");
+/*     */     }
+/* 585 */     if (x >= this.nx) {
+/* 586 */       throw new IndexOutOfBoundsException("putColumn: x >= nx.");
+/*     */     }
+/* 588 */     if (column == null) {
+/* 589 */       throw new ArrayStoreException("putColumn: column == null.");
+/*     */     }
+/* 591 */     this.imageware.putBoundedY(x, y, 0, column);
+/*     */   }
+/*     */ 
+/*     */   public void putRow(int y, double[] row)
+/*     */   {
+/* 602 */     if (y < 0) {
+/* 603 */       throw new IndexOutOfBoundsException("putRow: y < 0.");
+/*     */     }
+/* 605 */     if (y >= this.ny) {
+/* 606 */       throw new IndexOutOfBoundsException("putRow: y >= ny.");
+/*     */     }
+/* 608 */     if (row == null) {
+/* 609 */       throw new ArrayStoreException("putRow: row == null.");
+/*     */     }
+/* 611 */     if (row.length != this.nx) {
+/* 612 */       throw new ArrayStoreException("putRow: row.length != nx.");
+/*     */     }
+/* 614 */     this.imageware.putBoundedX(0, y, 0, row);
+/*     */   }
+/*     */ 
+/*     */   public void putRow(int x, int y, double[] row)
+/*     */   {
+/* 627 */     if (y < 0) {
+/* 628 */       throw new IndexOutOfBoundsException("putRow: y < 0.");
+/*     */     }
+/* 630 */     if (y >= this.ny) {
+/* 631 */       throw new IndexOutOfBoundsException("putRow: y >= ny.");
+/*     */     }
+/* 633 */     if (row == null) {
+/* 634 */       throw new ArrayStoreException("putRow: row == null.");
+/*     */     }
+/* 636 */     this.imageware.putBoundedX(x, y, 0, row);
+/*     */   }
+/*     */ 
+/*     */   public void putArrayPixels(double[][] array)
+/*     */   {
+/* 646 */     if (array == null) {
+/* 647 */       throw new IndexOutOfBoundsException("putArrayPixels: array == null.");
+/*     */     }
+/* 649 */     this.imageware.putBoundedXY(0, 0, 0, array);
+/*     */   }
+/*     */ 
+/*     */   public void putSubImage(int x, int y, ImageAccess input)
+/*     */   {
+/* 663 */     if (input == null) {
+/* 664 */       throw new ArrayStoreException("putSubImage: input == null.");
+/*     */     }
+/* 666 */     if (x < 0) {
+/* 667 */       throw new IndexOutOfBoundsException("putSubImage: x < 0.");
+/*     */     }
+/* 669 */     if (y < 0) {
+/* 670 */       throw new IndexOutOfBoundsException("putSubImage: y < 0.");
+/*     */     }
+/* 672 */     if (x >= this.nx) {
+/* 673 */       throw new IndexOutOfBoundsException("putSubImage: x >= nx.");
+/*     */     }
+/* 675 */     if (y >= this.ny) {
+/* 676 */       throw new IndexOutOfBoundsException("putSubImage: y >= ny.");
+/*     */     }
+/*     */ 
+/* 679 */     int nxcopy = input.getWidth();
+/* 680 */     int nycopy = input.getHeight();
+/* 681 */     double[][] sub = input.getArrayPixels();
+/* 682 */     this.imageware.putBoundedXY(x, y, 0, sub);
+/*     */   }
+/*     */ 
+/*     */   public void setConstant(double constant)
+/*     */   {
+/* 692 */     this.imageware.fillConstant(constant);
+/*     */   }
+/*     */ 
+/*     */   public void normalizeContrast()
+/*     */   {
+/* 700 */     this.imageware.rescale();
+/*     */   }
+/*     */ 
+/*     */   public void show(String title, Point loc)
+/*     */   {
+/* 711 */     FloatProcessor fp = createFloatProcessor();
+/* 712 */     fp.resetMinAndMax();
+/* 713 */     ImagePlus impResult = new ImagePlus(title, fp);
+/* 714 */     ImageWindow window = impResult.getWindow();
+/* 715 */     window.setLocation(loc.x, loc.y);
+/* 716 */     impResult.show();
+/*     */   }
+/*     */ 
+/*     */   public void show(String title)
+/*     */   {
+/* 726 */     this.imageware.show(title);
+/*     */   }
+/*     */ 
+/*     */   public void abs()
+/*     */   {
+/* 733 */     this.imageware.abs();
+/*     */   }
+/*     */ 
+/*     */   public void sqrt()
+/*     */   {
+/* 740 */     this.imageware.sqrt();
+/*     */   }
+/*     */ 
+/*     */   public void pow(double a)
+/*     */   {
+/* 749 */     this.imageware.pow(a);
+/*     */   }
+/*     */ 
+/*     */   public void add(double constant)
+/*     */   {
+/* 759 */     this.imageware.add(constant);
+/*     */   }
+/*     */ 
+/*     */   public void multiply(double constant)
+/*     */   {
+/* 769 */     this.imageware.multiply(constant);
+/*     */   }
+/*     */ 
+/*     */   public void subtract(double constant)
+/*     */   {
+/* 779 */     this.imageware.add(-constant);
+/*     */   }
+/*     */ 
+/*     */   public void divide(double constant)
+/*     */   {
+/* 789 */     if (constant == 0.0D) {
+/* 790 */       throw new ArrayStoreException("divide: Divide by 0");
+/*     */     }
+/* 792 */     this.imageware.multiply(1.0D / constant);
+/*     */   }
+/*     */ 
+/*     */   public void add(ImageAccess im1, ImageAccess im2)
+/*     */   {
+/* 808 */     if (im1.getWidth() != this.nx) {
+/* 809 */       throw new ArrayStoreException("add: incompatible size.");
+/*     */     }
+/*     */ 
+/* 812 */     if (im1.getHeight() != this.ny) {
+/* 813 */       throw new ArrayStoreException("add: incompatible size.");
+/*     */     }
+/*     */ 
+/* 816 */     if (im2.getWidth() != this.nx) {
+/* 817 */       throw new ArrayStoreException("add: incompatible size.");
+/*     */     }
+/*     */ 
+/* 820 */     if (im2.getHeight() != this.ny) {
+/* 821 */       throw new ArrayStoreException("add: incompatible size.");
+/*     */     }
+/* 823 */     this.imageware.copy(im1.getDataset());
+/* 824 */     this.imageware.add(im2.getDataset());
+/*     */   }
+/*     */ 
+/*     */   public void multiply(ImageAccess im1, ImageAccess im2)
+/*     */   {
+/* 840 */     if (im1.getWidth() != this.nx) {
+/* 841 */       throw new ArrayStoreException("multiply: incompatible size.");
+/*     */     }
+/*     */ 
+/* 844 */     if (im1.getHeight() != this.ny) {
+/* 845 */       throw new ArrayStoreException("multiply: incompatible size.");
+/*     */     }
+/*     */ 
+/* 848 */     if (im2.getWidth() != this.nx) {
+/* 849 */       throw new ArrayStoreException("multiply: incompatible size.");
+/*     */     }
+/*     */ 
+/* 852 */     if (im2.getHeight() != this.ny) {
+/* 853 */       throw new ArrayStoreException("multiply: incompatible size.");
+/*     */     }
+/*     */ 
+/* 856 */     this.imageware.copy(im1.getDataset());
+/* 857 */     this.imageware.multiply(im2.getDataset());
+/*     */   }
+/*     */ 
+/*     */   public void subtract(ImageAccess im1, ImageAccess im2)
+/*     */   {
+/* 873 */     if (im1.getWidth() != this.nx) {
+/* 874 */       throw new ArrayStoreException("subtract: incompatible size.");
+/*     */     }
+/*     */ 
+/* 877 */     if (im1.getHeight() != this.ny) {
+/* 878 */       throw new ArrayStoreException("subtract: incompatible size.");
+/*     */     }
+/*     */ 
+/* 881 */     if (im2.getWidth() != this.nx) {
+/* 882 */       throw new ArrayStoreException("subtract: incompatible size.");
+/*     */     }
+/*     */ 
+/* 885 */     if (im2.getHeight() != this.ny) {
+/* 886 */       throw new ArrayStoreException("subtract: incompatible size.");
+/*     */     }
+/*     */ 
+/* 889 */     this.imageware.copy(im1.getDataset());
+/* 890 */     this.imageware.subtract(im2.getDataset());
+/*     */   }
+/*     */ 
+/*     */   public void divide(ImageAccess im1, ImageAccess im2)
+/*     */   {
+/* 906 */     if (im1.getWidth() != this.nx) {
+/* 907 */       throw new ArrayStoreException("divide: incompatible size.");
+/*     */     }
+/*     */ 
+/* 910 */     if (im1.getHeight() != this.ny) {
+/* 911 */       throw new ArrayStoreException("divide: incompatible size.");
+/*     */     }
+/*     */ 
+/* 914 */     if (im2.getWidth() != this.nx) {
+/* 915 */       throw new ArrayStoreException("divide: incompatible size.");
+/*     */     }
+/*     */ 
+/* 918 */     if (im2.getHeight() != this.ny) {
+/* 919 */       throw new ArrayStoreException("divide: incompatible size.");
+/*     */     }
+/*     */ 
+/* 922 */     this.imageware.copy(im1.getDataset());
+/* 923 */     this.imageware.divide(im2.getDataset());
+/*     */   }
+/*     */ }
+
+/* Location:           C:\Users\BHUSHANNK\Downloads\Watershed_\
+ * Qualified Name:     imageware.ImageAccess
+ * JD-Core Version:    0.6.2
+ */

@@ -1,0 +1,390 @@
+/*     */ package imageware;
+/*     */ 
+/*     */ import ij.ImageStack;
+/*     */ import java.awt.Image;
+/*     */ 
+/*     */ public class ByteProcess extends BytePointwise
+/*     */   implements Process
+/*     */ {
+/*     */   protected ByteProcess(int nx, int ny, int nz)
+/*     */   {
+/*  25 */     super(nx, ny, nz); } 
+/*  26 */   protected ByteProcess(Image image, int mode) { super(image, mode); } 
+/*     */   protected ByteProcess(ImageStack stack, int mode) {
+/*  28 */     super(stack, mode); } 
+/*  29 */   protected ByteProcess(ImageStack stack, byte chan) { super(stack, chan); } 
+/*     */   protected ByteProcess(byte[] array, int mode) {
+/*  31 */     super(array, mode); } 
+/*  32 */   protected ByteProcess(byte[][] array, int mode) { super(array, mode); } 
+/*  33 */   protected ByteProcess(byte[][][] array, int mode) { super(array, mode); } 
+/*  34 */   protected ByteProcess(short[] array, int mode) { super(array, mode); } 
+/*  35 */   protected ByteProcess(short[][] array, int mode) { super(array, mode); } 
+/*  36 */   protected ByteProcess(short[][][] array, int mode) { super(array, mode); } 
+/*  37 */   protected ByteProcess(float[] array, int mode) { super(array, mode); } 
+/*  38 */   protected ByteProcess(float[][] array, int mode) { super(array, mode); } 
+/*  39 */   protected ByteProcess(float[][][] array, int mode) { super(array, mode); } 
+/*  40 */   protected ByteProcess(double[] array, int mode) { super(array, mode); } 
+/*  41 */   protected ByteProcess(double[][] array, int mode) { super(array, mode); } 
+/*  42 */   protected ByteProcess(double[][][] array, int mode) { super(array, mode); }
+/*     */ 
+/*     */ 
+/*     */   public void smoothGaussian(double sigma)
+/*     */   {
+/*  54 */     smoothGaussian(sigma, sigma, sigma);
+/*     */   }
+/*     */ 
+/*     */   public void smoothGaussian(double sigmaX, double sigmaY, double sigmaZ)
+/*     */   {
+/*  69 */     int n = 3;
+/*  70 */     double N = n;
+/*  71 */     double step = 1.0D / (this.nx + this.ny + this.nz);
+/*  72 */     double[] poles = new double[n];
+/*     */ 
+/*  74 */     if ((this.nx > 1) && (sigmaX > 0.0D)) {
+/*  75 */       double s2 = sigmaX * sigmaX;
+/*  76 */       double alpha = 1.0D + N / s2 - Math.sqrt(N * N + 2.0D * N * s2) / s2;
+/*     */       double tmp96_95 = (poles[2] = alpha); poles[1] = tmp96_95; poles[0] = tmp96_95;
+/*  78 */       double[] line = new double[this.nx];
+/*  79 */       for (int z = 0; z < this.nz; z++) {
+/*  80 */         for (int y = 0; y < this.ny; y++) {
+/*  81 */           getX(0, y, z, line);
+/*  82 */           putX(0, y, z, Convolver.convolveIIR(line, poles));
+/*     */         }
+/*     */       }
+/*     */     }
+/*     */ 
+/*  87 */     if ((this.ny > 1) && (sigmaY > 0.0D)) {
+/*  88 */       double s2 = sigmaY * sigmaY;
+/*  89 */       double alpha = 1.0D + N / s2 - Math.sqrt(N * N + 2.0D * N * s2) / s2;
+/*     */       double tmp233_232 = (poles[2] = alpha); poles[1] = tmp233_232; poles[0] = tmp233_232;
+/*  91 */       double[] line = new double[this.ny];
+/*  92 */       for (int x = 0; x < this.nx; x++) {
+/*  93 */         for (int z = 0; z < this.nz; z++) {
+/*  94 */           getY(x, 0, z, line);
+/*  95 */           putY(x, 0, z, Convolver.convolveIIR(line, poles));
+/*     */         }
+/*     */       }
+/*     */     }
+/*     */ 
+/* 100 */     if ((this.nz > 1) && (sigmaZ > 0.0D)) {
+/* 101 */       double s2 = sigmaZ * sigmaZ;
+/* 102 */       double alpha = 1.0D + N / s2 - Math.sqrt(N * N + 2.0D * N * s2) / s2;
+/*     */       double tmp373_372 = (poles[2] = alpha); poles[1] = tmp373_372; poles[0] = tmp373_372;
+/* 104 */       double[] line = new double[this.nz];
+/* 105 */       for (int y = 0; y < this.ny; y++)
+/* 106 */         for (int x = 0; x < this.nx; x++) {
+/* 107 */           getZ(x, y, 0, line);
+/* 108 */           putZ(x, y, 0, Convolver.convolveIIR(line, poles));
+/*     */         }
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void max(ImageWare imageware)
+/*     */   {
+/* 120 */     if (!isSameSize(imageware)) {
+/* 121 */       throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnable to get the maximum because the two operands are not the same size.\n[" + this.nx + "," + this.ny + "," + "," + this.nz + "] != " + "[" + imageware.getSizeX() + "," + imageware.getSizeY() + "," + imageware.getSizeZ() + "].\n" + "-------------------------------------------------------\n");
+/*     */     }
+/*     */ 
+/* 130 */     switch (imageware.getType()) {
+/*     */     case 1:
+/* 132 */       for (int z = 0; z < this.nz; z++) {
+/* 133 */         byte[] tmp = ((ByteSet)imageware).getSliceByte(z);
+/* 134 */         for (int k = 0; k < this.nxy; k++) {
+/* 135 */           if (((byte[])(byte[])this.data[z])[k] < tmp[k])
+/* 136 */             ((byte[])this.data[z])[k] = tmp[k];
+/*     */         }
+/*     */       }
+/* 139 */       break;
+/*     */     case 2:
+/* 141 */       for (int z = 0; z < this.nz; z++) {
+/* 142 */         short[] tmp = ((ShortSet)imageware).getSliceShort(z);
+/* 143 */         for (int k = 0; k < this.nxy; k++) {
+/* 144 */           if (((byte[])(byte[])this.data[z])[k] < (byte)tmp[k])
+/* 145 */             ((byte[])this.data[z])[k] = ((byte)tmp[k]);
+/*     */         }
+/*     */       }
+/* 148 */       break;
+/*     */     case 3:
+/* 150 */       for (int z = 0; z < this.nz; z++) {
+/* 151 */         float[] tmp = ((FloatSet)imageware).getSliceFloat(z);
+/* 152 */         for (int k = 0; k < this.nxy; k++) {
+/* 153 */           if (((byte[])(byte[])this.data[z])[k] < (byte)(int)tmp[k])
+/* 154 */             ((byte[])this.data[z])[k] = ((byte)(int)tmp[k]);
+/*     */         }
+/*     */       }
+/* 157 */       break;
+/*     */     case 4:
+/* 159 */       for (int z = 0; z < this.nz; z++) {
+/* 160 */         double[] tmp = ((DoubleSet)imageware).getSliceDouble(z);
+/* 161 */         for (int k = 0; k < this.nxy; k++) {
+/* 162 */           if (((byte[])(byte[])this.data[z])[k] < (byte)(int)tmp[k])
+/* 163 */             ((byte[])this.data[z])[k] = ((byte)(int)tmp[k]);
+/*     */         }
+/*     */       }
+/* 166 */       break;
+/*     */     default:
+/* 168 */       throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnknown type " + imageware.getType() + "].\n" + "-------------------------------------------------------\n");
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void min(ImageWare imageware)
+/*     */   {
+/* 183 */     if (!isSameSize(imageware)) {
+/* 184 */       throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnable to get the minimum because the two operands are not the same size.\n[" + this.nx + "," + this.ny + "," + "," + this.nz + "] != " + "[" + imageware.getSizeX() + "," + imageware.getSizeY() + "," + imageware.getSizeZ() + "].\n" + "-------------------------------------------------------\n");
+/*     */     }
+/*     */ 
+/* 193 */     switch (imageware.getType()) {
+/*     */     case 1:
+/* 195 */       for (int z = 0; z < this.nz; z++) {
+/* 196 */         byte[] tmp = ((ByteSet)imageware).getSliceByte(z);
+/* 197 */         for (int k = 0; k < this.nxy; k++) {
+/* 198 */           if (((byte[])(byte[])this.data[z])[k] > tmp[k])
+/* 199 */             ((byte[])this.data[z])[k] = tmp[k];
+/*     */         }
+/*     */       }
+/* 202 */       break;
+/*     */     case 2:
+/* 204 */       for (int z = 0; z < this.nz; z++) {
+/* 205 */         short[] tmp = ((ShortSet)imageware).getSliceShort(z);
+/* 206 */         for (int k = 0; k < this.nxy; k++) {
+/* 207 */           if (((byte[])(byte[])this.data[z])[k] > (byte)tmp[k])
+/* 208 */             ((byte[])this.data[z])[k] = ((byte)tmp[k]);
+/*     */         }
+/*     */       }
+/* 211 */       break;
+/*     */     case 3:
+/* 213 */       for (int z = 0; z < this.nz; z++) {
+/* 214 */         float[] tmp = ((FloatSet)imageware).getSliceFloat(z);
+/* 215 */         for (int k = 0; k < this.nxy; k++) {
+/* 216 */           if (((byte[])(byte[])this.data[z])[k] > (byte)(int)tmp[k])
+/* 217 */             ((byte[])this.data[z])[k] = ((byte)(int)tmp[k]);
+/*     */         }
+/*     */       }
+/* 220 */       break;
+/*     */     case 4:
+/* 222 */       for (int z = 0; z < this.nz; z++) {
+/* 223 */         double[] tmp = ((DoubleSet)imageware).getSliceDouble(z);
+/* 224 */         for (int k = 0; k < this.nxy; k++) {
+/* 225 */           if (((byte[])(byte[])this.data[z])[k] > (byte)(int)tmp[k])
+/* 226 */             ((byte[])this.data[z])[k] = ((byte)(int)tmp[k]);
+/*     */         }
+/*     */       }
+/* 229 */       break;
+/*     */     default:
+/* 231 */       throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnknown type " + imageware.getType() + "].\n" + "-------------------------------------------------------\n");
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void add(ImageWare imageware)
+/*     */   {
+/* 246 */     if (!isSameSize(imageware)) {
+/* 247 */       throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnable to add because the two operands are not the same size.\n[" + this.nx + "," + this.ny + "," + "," + this.nz + "] != " + "[" + imageware.getSizeX() + "," + imageware.getSizeY() + "," + imageware.getSizeZ() + "].\n" + "-------------------------------------------------------\n");
+/*     */     }
+/*     */ 
+/* 256 */     switch (imageware.getType()) {
+/*     */     case 1:
+/* 258 */       for (int z = 0; z < this.nz; z++) {
+/* 259 */         byte[] tmp = ((ByteSet)imageware).getSliceByte(z);
+/* 260 */         for (int k = 0; k < this.nxy; k++)
+/*     */         {
+/*     */           int tmp205_203 = k;
+/*     */           byte[] tmp205_200 = ((byte[])this.data[z]); tmp205_200[tmp205_203] = ((byte)(tmp205_200[tmp205_203] + tmp[k]));
+/*     */         }
+/*     */       }
+/* 264 */       break;
+/*     */     case 2:
+/* 266 */       for (int z = 0; z < this.nz; z++) {
+/* 267 */         short[] tmp = ((ShortSet)imageware).getSliceShort(z);
+/* 268 */         for (int k = 0; k < this.nxy; k++)
+/*     */         {
+/*     */           int tmp274_272 = k;
+/*     */           byte[] tmp274_269 = ((byte[])this.data[z]); tmp274_269[tmp274_272] = ((byte)(tmp274_269[tmp274_272] + (byte)tmp[k]));
+/*     */         }
+/*     */       }
+/* 272 */       break;
+/*     */     case 3:
+/* 274 */       for (int z = 0; z < this.nz; z++) {
+/* 275 */         float[] tmp = ((FloatSet)imageware).getSliceFloat(z);
+/* 276 */         for (int k = 0; k < this.nxy; k++)
+/*     */         {
+/*     */           int tmp344_342 = k;
+/*     */           byte[] tmp344_339 = ((byte[])this.data[z]); tmp344_339[tmp344_342] = ((byte)(tmp344_339[tmp344_342] + (byte)(int)tmp[k]));
+/*     */         }
+/*     */       }
+/* 280 */       break;
+/*     */     case 4:
+/* 282 */       for (int z = 0; z < this.nz; z++) {
+/* 283 */         double[] tmp = ((DoubleSet)imageware).getSliceDouble(z);
+/* 284 */         for (int k = 0; k < this.nxy; k++)
+/*     */         {
+/*     */           int tmp415_413 = k;
+/*     */           byte[] tmp415_410 = ((byte[])this.data[z]); tmp415_410[tmp415_413] = ((byte)(tmp415_410[tmp415_413] + (byte)(int)tmp[k]));
+/*     */         }
+/*     */       }
+/* 288 */       break;
+/*     */     default:
+/* 290 */       throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnknown type " + imageware.getType() + "].\n" + "-------------------------------------------------------\n");
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void multiply(ImageWare imageware)
+/*     */   {
+/* 305 */     if (!isSameSize(imageware)) {
+/* 306 */       throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnable to multiply because the two operands are not the same size.\n[" + this.nx + "," + this.ny + "," + "," + this.nz + "] != " + "[" + imageware.getSizeX() + "," + imageware.getSizeY() + "," + imageware.getSizeZ() + "].\n" + "-------------------------------------------------------\n");
+/*     */     }
+/*     */ 
+/* 315 */     switch (imageware.getType()) {
+/*     */     case 1:
+/* 317 */       for (int z = 0; z < this.nz; z++) {
+/* 318 */         byte[] tmp = ((ByteSet)imageware).getSliceByte(z);
+/* 319 */         for (int k = 0; k < this.nxy; k++)
+/*     */         {
+/*     */           int tmp205_203 = k;
+/*     */           byte[] tmp205_200 = ((byte[])this.data[z]); tmp205_200[tmp205_203] = ((byte)(tmp205_200[tmp205_203] * tmp[k]));
+/*     */         }
+/*     */       }
+/* 323 */       break;
+/*     */     case 2:
+/* 325 */       for (int z = 0; z < this.nz; z++) {
+/* 326 */         short[] tmp = ((ShortSet)imageware).getSliceShort(z);
+/* 327 */         for (int k = 0; k < this.nxy; k++)
+/*     */         {
+/*     */           int tmp274_272 = k;
+/*     */           byte[] tmp274_269 = ((byte[])this.data[z]); tmp274_269[tmp274_272] = ((byte)(tmp274_269[tmp274_272] * (byte)tmp[k]));
+/*     */         }
+/*     */       }
+/* 331 */       break;
+/*     */     case 3:
+/* 333 */       for (int z = 0; z < this.nz; z++) {
+/* 334 */         float[] tmp = ((FloatSet)imageware).getSliceFloat(z);
+/* 335 */         for (int k = 0; k < this.nxy; k++)
+/*     */         {
+/*     */           int tmp344_342 = k;
+/*     */           byte[] tmp344_339 = ((byte[])this.data[z]); tmp344_339[tmp344_342] = ((byte)(tmp344_339[tmp344_342] * (byte)(int)tmp[k]));
+/*     */         }
+/*     */       }
+/* 339 */       break;
+/*     */     case 4:
+/* 341 */       for (int z = 0; z < this.nz; z++) {
+/* 342 */         double[] tmp = ((DoubleSet)imageware).getSliceDouble(z);
+/* 343 */         for (int k = 0; k < this.nxy; k++)
+/*     */         {
+/*     */           int tmp415_413 = k;
+/*     */           byte[] tmp415_410 = ((byte[])this.data[z]); tmp415_410[tmp415_413] = ((byte)(tmp415_410[tmp415_413] * (byte)(int)tmp[k]));
+/*     */         }
+/*     */       }
+/* 347 */       break;
+/*     */     default:
+/* 349 */       throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnknown type " + imageware.getType() + "].\n" + "-------------------------------------------------------\n");
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void subtract(ImageWare imageware)
+/*     */   {
+/* 364 */     if (!isSameSize(imageware)) {
+/* 365 */       throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnable to subtract because the two operands are not the same size.\n[" + this.nx + "," + this.ny + "," + "," + this.nz + "] != " + "[" + imageware.getSizeX() + "," + imageware.getSizeY() + "," + imageware.getSizeZ() + "].\n" + "-------------------------------------------------------\n");
+/*     */     }
+/*     */ 
+/* 374 */     switch (imageware.getType()) {
+/*     */     case 1:
+/* 376 */       for (int z = 0; z < this.nz; z++) {
+/* 377 */         byte[] tmp = ((ByteSet)imageware).getSliceByte(z);
+/* 378 */         for (int k = 0; k < this.nxy; k++)
+/*     */         {
+/*     */           int tmp205_203 = k;
+/*     */           byte[] tmp205_200 = ((byte[])this.data[z]); tmp205_200[tmp205_203] = ((byte)(tmp205_200[tmp205_203] - tmp[k]));
+/*     */         }
+/*     */       }
+/* 382 */       break;
+/*     */     case 2:
+/* 384 */       for (int z = 0; z < this.nz; z++) {
+/* 385 */         short[] tmp = ((ShortSet)imageware).getSliceShort(z);
+/* 386 */         for (int k = 0; k < this.nxy; k++)
+/*     */         {
+/*     */           int tmp274_272 = k;
+/*     */           byte[] tmp274_269 = ((byte[])this.data[z]); tmp274_269[tmp274_272] = ((byte)(tmp274_269[tmp274_272] - (byte)tmp[k]));
+/*     */         }
+/*     */       }
+/* 390 */       break;
+/*     */     case 3:
+/* 392 */       for (int z = 0; z < this.nz; z++) {
+/* 393 */         float[] tmp = ((FloatSet)imageware).getSliceFloat(z);
+/* 394 */         for (int k = 0; k < this.nxy; k++)
+/*     */         {
+/*     */           int tmp344_342 = k;
+/*     */           byte[] tmp344_339 = ((byte[])this.data[z]); tmp344_339[tmp344_342] = ((byte)(tmp344_339[tmp344_342] - (byte)(int)tmp[k]));
+/*     */         }
+/*     */       }
+/* 398 */       break;
+/*     */     case 4:
+/* 400 */       for (int z = 0; z < this.nz; z++) {
+/* 401 */         double[] tmp = ((DoubleSet)imageware).getSliceDouble(z);
+/* 402 */         for (int k = 0; k < this.nxy; k++)
+/*     */         {
+/*     */           int tmp415_413 = k;
+/*     */           byte[] tmp415_410 = ((byte[])this.data[z]); tmp415_410[tmp415_413] = ((byte)(tmp415_410[tmp415_413] - (byte)(int)tmp[k]));
+/*     */         }
+/*     */       }
+/* 406 */       break;
+/*     */     default:
+/* 408 */       throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnknown type " + imageware.getType() + "].\n" + "-------------------------------------------------------\n");
+/*     */     }
+/*     */   }
+/*     */ 
+/*     */   public void divide(ImageWare imageware)
+/*     */   {
+/* 423 */     if (!isSameSize(imageware)) {
+/* 424 */       throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnable to divide because the two operands are not the same size.\n[" + this.nx + "," + this.ny + "," + "," + this.nz + "] != " + "[" + imageware.getSizeX() + "," + imageware.getSizeY() + "," + imageware.getSizeZ() + "].\n" + "-------------------------------------------------------\n");
+/*     */     }
+/*     */ 
+/* 433 */     switch (imageware.getType()) {
+/*     */     case 1:
+/* 435 */       for (int z = 0; z < this.nz; z++) {
+/* 436 */         byte[] tmp = ((ByteSet)imageware).getSliceByte(z);
+/* 437 */         for (int k = 0; k < this.nxy; k++)
+/*     */         {
+/*     */           int tmp205_203 = k;
+/*     */           byte[] tmp205_200 = ((byte[])this.data[z]); tmp205_200[tmp205_203] = ((byte)(tmp205_200[tmp205_203] / tmp[k]));
+/*     */         }
+/*     */       }
+/* 441 */       break;
+/*     */     case 2:
+/* 443 */       for (int z = 0; z < this.nz; z++) {
+/* 444 */         short[] tmp = ((ShortSet)imageware).getSliceShort(z);
+/* 445 */         for (int k = 0; k < this.nxy; k++)
+/*     */         {
+/*     */           int tmp274_272 = k;
+/*     */           byte[] tmp274_269 = ((byte[])this.data[z]); tmp274_269[tmp274_272] = ((byte)(tmp274_269[tmp274_272] / (byte)tmp[k]));
+/*     */         }
+/*     */       }
+/* 449 */       break;
+/*     */     case 3:
+/* 451 */       for (int z = 0; z < this.nz; z++) {
+/* 452 */         float[] tmp = ((FloatSet)imageware).getSliceFloat(z);
+/* 453 */         for (int k = 0; k < this.nxy; k++)
+/*     */         {
+/*     */           int tmp344_342 = k;
+/*     */           byte[] tmp344_339 = ((byte[])this.data[z]); tmp344_339[tmp344_342] = ((byte)(tmp344_339[tmp344_342] / (byte)(int)tmp[k]));
+/*     */         }
+/*     */       }
+/* 457 */       break;
+/*     */     case 4:
+/* 459 */       for (int z = 0; z < this.nz; z++) {
+/* 460 */         double[] tmp = ((DoubleSet)imageware).getSliceDouble(z);
+/* 461 */         for (int k = 0; k < this.nxy; k++)
+/*     */         {
+/*     */           int tmp415_413 = k;
+/*     */           byte[] tmp415_410 = ((byte[])this.data[z]); tmp415_410[tmp415_413] = ((byte)(tmp415_410[tmp415_413] / (byte)(int)tmp[k]));
+/*     */         }
+/*     */       }
+/* 465 */       break;
+/*     */     default:
+/* 467 */       throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnknown type " + imageware.getType() + "].\n" + "-------------------------------------------------------\n");
+/*     */     }
+/*     */   }
+/*     */ }
+
+/* Location:           C:\Users\BHUSHANNK\Downloads\Watershed_\
+ * Qualified Name:     imageware.ByteProcess
+ * JD-Core Version:    0.6.2
+ */

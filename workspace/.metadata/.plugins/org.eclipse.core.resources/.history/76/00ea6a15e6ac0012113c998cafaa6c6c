@@ -1,0 +1,460 @@
+/*     */ package imageware;
+/*     */ 
+/*     */ import ij.ImagePlus;
+/*     */ import ij.ImageStack;
+/*     */ import ij.WindowManager;
+/*     */ import ij.process.ByteProcessor;
+/*     */ import ij.process.FloatProcessor;
+/*     */ import ij.process.ImageProcessor;
+/*     */ import ij.process.ShortProcessor;
+/*     */ import java.awt.Image;
+/*     */ 
+/*     */ public class Builder
+/*     */ {
+/*     */   public static ImageWare wrapOnFocus()
+/*     */   {
+/*  29 */     ImagePlus imp = WindowManager.getCurrentImage();
+/*  30 */     return wrap(imp.getStack());
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare wrap(ImagePlus imp)
+/*     */   {
+/*  40 */     return wrap(imp.getStack());
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare wrap(ImageStack stack)
+/*     */   {
+/*  50 */     if (stack == null)
+/*  51 */       throw_null();
+/*  52 */     ImageProcessor ip = stack.getProcessor(1);
+/*  53 */     if ((ip instanceof ByteProcessor)) {
+/*  54 */       return new ByteSet(stack, 2);
+/*     */     }
+/*  56 */     if ((ip instanceof ShortProcessor)) {
+/*  57 */       return new ShortSet(stack, 2);
+/*     */     }
+/*  59 */     if ((ip instanceof FloatProcessor)) {
+/*  60 */       return new FloatSet(stack, 2);
+/*     */     }
+/*     */ 
+/*  63 */     throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnable to wrap this ImageStack object.\nSupport only the 8-bit, 16-bit and 32-bits type.\n-------------------------------------------------------\n");
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(int nx, int ny, int nz, int type)
+/*     */   {
+/*  81 */     switch (type) {
+/*     */     case 1:
+/*  83 */       return new ByteSet(nx, ny, nz);
+/*     */     case 2:
+/*  85 */       return new ShortSet(nx, ny, nz);
+/*     */     case 3:
+/*  87 */       return new FloatSet(nx, ny, nz);
+/*     */     case 4:
+/*  89 */       return new DoubleSet(nx, ny, nz);
+/*     */     }
+/*  91 */     throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnknown type " + type + ".\n" + "-------------------------------------------------------\n");
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(Image image)
+/*     */   {
+/* 106 */     if (image == null)
+/* 107 */       throw_null();
+/* 108 */     return new ByteSet(image, 1);
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare createOnFocus()
+/*     */   {
+/* 115 */     return create(WindowManager.getCurrentImage());
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(ImageStack stack)
+/*     */   {
+/* 124 */     if (stack == null)
+/* 125 */       throw_null();
+/* 126 */     ImageWare wrapped = wrap(stack);
+/* 127 */     return wrapped.duplicate();
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(ImagePlus imp)
+/*     */   {
+/* 136 */     if (imp == null)
+/* 137 */       throw_null();
+/* 138 */     ImageWare wrapped = wrap(imp);
+/* 139 */     return wrapped.duplicate();
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare[] createColors(ImagePlus imp)
+/*     */   {
+/* 148 */     if (imp == null)
+/* 149 */       throw_null();
+/* 150 */     return createColors(imp.getStack());
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare[] createColors(ImageStack stack)
+/*     */   {
+/* 159 */     if (stack == null)
+/* 160 */       throw_null();
+/* 161 */     ImageWare[] color = new ImageWare[3];
+/* 162 */     color[0] = new ByteSet(stack, 0);
+/* 163 */     color[1] = new ByteSet(stack, 1);
+/* 164 */     color[2] = new ByteSet(stack, 2);
+/* 165 */     return color;
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare createColorChannel(ImagePlus imp, byte channel)
+/*     */   {
+/* 175 */     if (imp == null)
+/* 176 */       throw_null();
+/* 177 */     return createColorChannel(imp.getStack(), channel);
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare createColorChannel(ImageStack stack, byte channel)
+/*     */   {
+/* 186 */     if (stack == null)
+/* 187 */       throw_null();
+/* 188 */     return new ByteSet(stack, channel);
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(byte[] object)
+/*     */   {
+/* 198 */     if (object == null)
+/* 199 */       throw_null();
+/* 200 */     return new ByteSet(object, 1);
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(short[] object)
+/*     */   {
+/* 209 */     if (object == null)
+/* 210 */       throw_null();
+/* 211 */     return new ShortSet(object, 1);
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(float[] object)
+/*     */   {
+/* 220 */     if (object == null)
+/* 221 */       throw_null();
+/* 222 */     return new FloatSet(object, 1);
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(double[] object)
+/*     */   {
+/* 231 */     if (object == null)
+/* 232 */       throw_null();
+/* 233 */     return new DoubleSet(object, 1);
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(byte[][] object)
+/*     */   {
+/* 242 */     if (object == null)
+/* 243 */       throw_null();
+/* 244 */     return new ByteSet(object, 1);
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(short[][] object)
+/*     */   {
+/* 253 */     if (object == null)
+/* 254 */       throw_null();
+/* 255 */     return new ByteSet(object, 1);
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(float[][] object)
+/*     */   {
+/* 264 */     if (object == null)
+/* 265 */       throw_null();
+/* 266 */     return new FloatSet(object, 1);
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(double[][] object)
+/*     */   {
+/* 275 */     if (object == null)
+/* 276 */       throw_null();
+/* 277 */     return new DoubleSet(object, 1);
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(byte[][][] object)
+/*     */   {
+/* 285 */     if (object == null)
+/* 286 */       throw_null();
+/* 287 */     return new ByteSet(object, 1);
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(short[][][] object)
+/*     */   {
+/* 296 */     if (object == null)
+/* 297 */       throw_null();
+/* 298 */     return new ShortSet(object, 1);
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(float[][][] object)
+/*     */   {
+/* 307 */     if (object == null)
+/* 308 */       throw_null();
+/* 309 */     return new FloatSet(object, 1);
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(double[][][] object)
+/*     */   {
+/* 318 */     if (object == null)
+/* 319 */       throw_null();
+/* 320 */     return new DoubleSet(object, 1);
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(Image image, int type)
+/*     */   {
+/* 330 */     if (image == null)
+/* 331 */       throw_null();
+/* 332 */     switch (type) {
+/*     */     case 1:
+/* 334 */       return new ByteSet(image, 1);
+/*     */     case 2:
+/* 336 */       return new ShortSet(image, 1);
+/*     */     case 3:
+/* 338 */       return new FloatSet(image, 1);
+/*     */     case 4:
+/* 340 */       return new DoubleSet(image, 1);
+/*     */     }
+/* 342 */     throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnknown type " + type + ".\n" + "-------------------------------------------------------\n");
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare createOnFocus(int type)
+/*     */   {
+/* 357 */     return create(WindowManager.getCurrentImage(), type);
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(ImagePlus imp, int type)
+/*     */   {
+/* 367 */     if (imp == null)
+/* 368 */       throw_null();
+/* 369 */     switch (type) {
+/*     */     case 1:
+/* 371 */       return new ByteSet(imp.getStack(), 1);
+/*     */     case 2:
+/* 373 */       return new ShortSet(imp.getStack(), 1);
+/*     */     case 3:
+/* 375 */       return new FloatSet(imp.getStack(), 1);
+/*     */     case 4:
+/* 377 */       return new DoubleSet(imp.getStack(), 1);
+/*     */     }
+/* 379 */     throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnknown type " + type + ".\n" + "-------------------------------------------------------\n");
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(ImageStack object, int type)
+/*     */   {
+/* 395 */     if (object == null)
+/* 396 */       throw_null();
+/* 397 */     ImageWare wrapped = wrap(object);
+/* 398 */     return wrapped.convert(type);
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare[] createColor(ImagePlus imp, int type)
+/*     */   {
+/* 408 */     if (imp == null)
+/* 409 */       throw_null();
+/* 410 */     return createColor(imp.getStack(), type);
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare[] createColor(ImageStack stack, int type)
+/*     */   {
+/* 420 */     if (stack == null)
+/* 421 */       throw_null();
+/* 422 */     ImageWare[] color = new ImageWare[3];
+/* 423 */     switch (type) {
+/*     */     case 1:
+/* 425 */       color[0] = new ByteSet(stack, 0);
+/* 426 */       color[1] = new ByteSet(stack, 1);
+/* 427 */       color[2] = new ByteSet(stack, 2);
+/* 428 */       break;
+/*     */     case 2:
+/* 430 */       color[0] = new ShortSet(stack, 0);
+/* 431 */       color[1] = new ShortSet(stack, 1);
+/* 432 */       color[2] = new ShortSet(stack, 2);
+/* 433 */       break;
+/*     */     case 3:
+/* 435 */       color[0] = new FloatSet(stack, 0);
+/* 436 */       color[1] = new FloatSet(stack, 1);
+/* 437 */       color[2] = new FloatSet(stack, 2);
+/* 438 */       break;
+/*     */     case 4:
+/* 440 */       color[0] = new DoubleSet(stack, 0);
+/* 441 */       color[1] = new DoubleSet(stack, 1);
+/* 442 */       color[2] = new DoubleSet(stack, 2);
+/* 443 */       break;
+/*     */     default:
+/* 445 */       throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnknown type " + type + ".\n" + "-------------------------------------------------------\n");
+/*     */     }
+/*     */ 
+/* 452 */     return color;
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare createColorChannel(ImagePlus imp, byte channel, int type)
+/*     */   {
+/* 462 */     if (imp == null)
+/* 463 */       throw_null();
+/* 464 */     return createColorChannel(imp.getStack(), channel, type);
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare createColorChannel(ImageStack stack, byte channel, int type)
+/*     */   {
+/* 473 */     if (stack == null)
+/* 474 */       throw_null();
+/* 475 */     ImageWare out = null;
+/* 476 */     switch (type) {
+/*     */     case 1:
+/* 478 */       out = new ByteSet(stack, channel);
+/* 479 */       break;
+/*     */     case 2:
+/* 481 */       out = new ShortSet(stack, channel);
+/* 482 */       break;
+/*     */     case 3:
+/* 484 */       out = new FloatSet(stack, channel);
+/* 485 */       break;
+/*     */     case 4:
+/* 487 */       out = new DoubleSet(stack, channel);
+/* 488 */       break;
+/*     */     default:
+/* 490 */       throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnknown type " + type + ".\n" + "-------------------------------------------------------\n");
+/*     */     }
+/*     */ 
+/* 497 */     return out;
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(byte[] object, int type)
+/*     */   {
+/* 508 */     if (object == null)
+/* 509 */       throw_null();
+/* 510 */     ImageWare out = createType(object.length, 1, 1, type);
+/* 511 */     out.putX(0, 0, 0, object);
+/* 512 */     return out;
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(short[] object, int type)
+/*     */   {
+/* 522 */     if (object == null)
+/* 523 */       throw_null();
+/* 524 */     ImageWare out = createType(object.length, 1, 1, type);
+/* 525 */     out.putX(0, 0, 0, object);
+/* 526 */     return out;
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(float[] object, int type)
+/*     */   {
+/* 536 */     if (object == null)
+/* 537 */       throw_null();
+/* 538 */     ImageWare out = createType(object.length, 1, 1, type);
+/* 539 */     out.putX(0, 0, 0, object);
+/* 540 */     return out;
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(double[] object, int type)
+/*     */   {
+/* 550 */     if (object == null)
+/* 551 */       throw_null();
+/* 552 */     ImageWare out = createType(object.length, 1, 1, type);
+/* 553 */     out.putX(0, 0, 0, object);
+/* 554 */     return out;
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(byte[][] object, int type)
+/*     */   {
+/* 564 */     if (object == null)
+/* 565 */       throw_null();
+/* 566 */     ImageWare out = createType(object.length, object[0].length, 1, type);
+/* 567 */     out.putXY(0, 0, 0, object);
+/* 568 */     return out;
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(short[][] object, int type)
+/*     */   {
+/* 578 */     if (object == null)
+/* 579 */       throw_null();
+/* 580 */     ImageWare out = createType(object.length, object[0].length, 1, type);
+/* 581 */     out.putXY(0, 0, 0, object);
+/* 582 */     return out;
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(float[][] object, int type)
+/*     */   {
+/* 592 */     if (object == null)
+/* 593 */       throw_null();
+/* 594 */     ImageWare out = createType(object.length, object[0].length, 1, type);
+/* 595 */     out.putXY(0, 0, 0, object);
+/* 596 */     return out;
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(double[][] object, int type)
+/*     */   {
+/* 606 */     if (object == null)
+/* 607 */       throw_null();
+/* 608 */     ImageWare out = createType(object.length, object[0].length, 1, type);
+/* 609 */     out.putXY(0, 0, 0, object);
+/* 610 */     return out;
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(byte[][][] object, int type)
+/*     */   {
+/* 619 */     if (object == null)
+/* 620 */       throw_null();
+/* 621 */     ImageWare out = createType(object.length, object[0].length, object[0][0].length, type);
+/* 622 */     out.putXYZ(0, 0, 0, object);
+/* 623 */     return out;
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(short[][][] object, int type)
+/*     */   {
+/* 633 */     if (object == null)
+/* 634 */       throw_null();
+/* 635 */     ImageWare out = createType(object.length, object[0].length, object[0][0].length, type);
+/* 636 */     out.putXYZ(0, 0, 0, object);
+/* 637 */     return out;
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(float[][][] object, int type)
+/*     */   {
+/* 647 */     if (object == null)
+/* 648 */       throw_null();
+/* 649 */     ImageWare out = createType(object.length, object[0].length, object[0][0].length, type);
+/* 650 */     out.putXYZ(0, 0, 0, object);
+/* 651 */     return out;
+/*     */   }
+/*     */ 
+/*     */   public static ImageWare create(double[][][] object, int type)
+/*     */   {
+/* 661 */     if (object == null)
+/* 662 */       throw_null();
+/* 663 */     ImageWare out = createType(object.length, object[0].length, object[0][0].length, type);
+/* 664 */     out.putXYZ(0, 0, 0, object);
+/* 665 */     return out;
+/*     */   }
+/*     */ 
+/*     */   private static ImageWare createType(int nx, int ny, int nz, int type)
+/*     */   {
+/* 671 */     ImageWare out = null;
+/* 672 */     switch (type) {
+/*     */     case 1:
+/* 674 */       out = new ByteSet(nx, ny, nz);
+/* 675 */       break;
+/*     */     case 2:
+/* 677 */       out = new ShortSet(nx, ny, nz);
+/* 678 */       break;
+/*     */     case 3:
+/* 680 */       out = new FloatSet(nx, ny, nz);
+/* 681 */       break;
+/*     */     case 4:
+/* 683 */       out = new DoubleSet(nx, ny, nz);
+/* 684 */       break;
+/*     */     default:
+/* 686 */       throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnable to create this object.\n-------------------------------------------------------\n");
+/*     */     }
+/*     */ 
+/* 693 */     return out;
+/*     */   }
+/*     */ 
+/*     */   private static void throw_null() {
+/* 697 */     throw new ArrayStoreException("\n-------------------------------------------------------\nError in imageware package\nUnable to wrap the ImagePlus.\nThe object parameter is null.\n-------------------------------------------------------\n");
+/*     */   }
+/*     */ }
+
+/* Location:           C:\Users\BHUSHANNK\Downloads\Watershed_\
+ * Qualified Name:     imageware.Builder
+ * JD-Core Version:    0.6.2
+ */
